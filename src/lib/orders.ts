@@ -34,6 +34,7 @@ export interface StoredOrder {
   email: string;
   phone: string;
   address: string;
+  city?: string;
   items: OrderItem[];
   subtotal: number;
   shipping: number;

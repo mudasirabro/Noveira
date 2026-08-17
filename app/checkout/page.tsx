@@ -49,7 +49,7 @@ export default function CheckoutPage() {
     setFormData((prev) => ({ ...prev, [e.target.name]: e.target.value }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
     if (step === 1) {
@@ -66,6 +66,7 @@ export default function CheckoutPage() {
       email: formData.email,
       phone: formData.phone,
       address: `${formData.address}, ${formData.city}, ${formData.zipCode}`,
+      city: formData.city,
       items: cartItems.map((item) => ({
         id: item.id,
         name: item.name,
@@ -81,6 +82,16 @@ export default function CheckoutPage() {
       paymentMethod: formData.paymentMethod === 'cod' ? 'Cash on Delivery' : 'Card',
       placedAt: new Date().toISOString(),
     };
+
+    try {
+      await fetch('/api/orders', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ order }),
+      });
+    } catch (err) {
+      console.error('API order submit error:', err);
+    }
 
     const existing = readOrders();
     writeOrders([...existing, order]);

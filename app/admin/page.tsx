@@ -68,7 +68,17 @@ function AdminDashboard() {
   useEffect(() => {
     syncStockFromStorage();
     setOrders(sortByNewest(readOrders()));
-    setHydrated(true);
+
+    // Fetch from Supabase / API route
+    fetch('/api/orders')
+      .then((res) => res.json())
+      .then((res) => {
+        if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+          setOrders(sortByNewest(res.data));
+        }
+      })
+      .catch((err) => console.error('API orders fetch error:', err))
+      .finally(() => setHydrated(true));
   }, []);
 
   const adminEmail = useMemo(() => (hydrated ? getAdminEmail() : null), [hydrated]);
@@ -78,15 +88,35 @@ function AdminDashboard() {
     router.replace('/admin/login');
   }, [router]);
 
-  const handleStatusChange = useCallback((id: string, status: OrderStatus) => {
+  const handleStatusChange = useCallback(async (id: string, status: OrderStatus) => {
     setOrders(sortByNewest(setOrderStatus(id, status)));
     setNotice(`Order ${id} updated to ${status}.`);
+
+    try {
+      await fetch('/api/orders', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, status }),
+      });
+    } catch (err) {
+      console.error('API order status update error:', err);
+    }
   }, []);
 
-  const handleStockUpdate = useCallback((id: number, newStock: number) => {
+  const handleStockUpdate = useCallback(async (id: number, newStock: number) => {
     updateStock(id, newStock);
     setCatalogueVersion((v) => v + 1);
     setNotice(`Stock updated for Product #${id}.`);
+
+    try {
+      await fetch('/api/products', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, stock: newStock }),
+      });
+    } catch (err) {
+      console.error('API stock update error:', err);
+    }
   }, []);
 
   useEffect(() => {
