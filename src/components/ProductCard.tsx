@@ -5,6 +5,7 @@ import Image from 'next/image';
 import { Product } from '@/src/data/products';
 import { useCart } from '@/src/context/CartContext';
 import { useWishlist } from '@/src/context/WishlistContext';
+import { useState } from 'react';
 
 interface ProductCardProps {
   product: Product;
@@ -15,14 +16,37 @@ interface ProductCardProps {
 export default function ProductCard({ product, badge, priority = false }: ProductCardProps) {
   const { addToCart } = useCart();
   const { isInWishlist, toggleWishlist, hydrated } = useWishlist();
+  const [added, setAdded] = useState(false);
+  const [wishAnimating, setWishAnimating] = useState(false);
 
   const soldOut = product.stock === 0;
   const saved = hydrated && isInWishlist(product.id);
 
+  const handleQuickAdd = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (soldOut) return;
+    addToCart(product, 1, product.sizes?.[0], product.colors?.[0]);
+    setAdded(true);
+    setTimeout(() => setAdded(false), 2000);
+  };
+
+  const handleWishlist = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    toggleWishlist(product);
+    setWishAnimating(true);
+    setTimeout(() => setWishAnimating(false), 400);
+  };
+
   return (
-    <article className="group relative flex flex-col overflow-hidden rounded-sm transition-all duration-300">
-      <div className="relative aspect-[3/4] w-full overflow-hidden bg-void">
-        <Link href={`/products/${product.id}`} className="block h-full w-full">
+    <article className="group relative flex flex-col">
+      {/* Image container */}
+      <div
+        className="relative w-full overflow-hidden"
+        style={{ aspectRatio: '3/4', background: 'var(--color-bg-warm)' }}
+      >
+        <Link href={`/products/${product.id}`} className="block h-full w-full" aria-label={product.name}>
           <Image
             src={product.image}
             alt={product.name}
@@ -30,44 +54,75 @@ export default function ProductCard({ product, badge, priority = false }: Produc
             sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
             priority={priority}
             className="product-card-img object-cover object-center"
+            onError={(e) => {
+              const img = e.target as HTMLImageElement;
+              img.src = `https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=600&h=800&fit=crop&q=80`;
+            }}
           />
-          <div className="absolute inset-0 bg-gradient-to-t from-obsidian/80 via-transparent to-transparent opacity-0 transition-opacity duration-300 group-hover:opacity-100" />
+
+          {/* Hover overlay */}
+          <div
+            className="absolute inset-0 transition-opacity duration-500 opacity-0 group-hover:opacity-100 pointer-events-none"
+            style={{ background: 'rgba(30,25,22,0.06)' }}
+          />
         </Link>
 
-        {/* Badges */}
-        {(badge || product.isSale || soldOut) && (
-          <div className="pointer-events-none absolute left-3 top-3 flex flex-col items-start gap-1.5 z-10">
-            {soldOut ? (
-              <span className="bg-obsidian/90 border border-stone/30 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-cream backdrop-blur-md">
-                Sold Out
-              </span>
-            ) : (
-              <>
-                {badge && (
-                  <span className="bg-obsidian/90 border border-gold/40 px-2.5 py-1 text-[9px] font-semibold uppercase tracking-[0.18em] text-gold backdrop-blur-md">
-                    {badge}
-                  </span>
-                )}
-                {product.isSale && (
-                  <span className="bg-gold text-obsidian px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.18em] shadow-md">
-                    Sale
-                  </span>
-                )}
-              </>
-            )}
-          </div>
-        )}
+        {/* Badges — top left */}
+        <div className="pointer-events-none absolute left-3 top-3 flex flex-col items-start gap-1.5 z-10">
+          {soldOut ? (
+            <span
+              className="px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em]"
+              style={{ background: 'var(--color-espresso)', color: 'var(--color-ivory)' }}
+            >
+              Sold Out
+            </span>
+          ) : (
+            <>
+              {badge && (
+                <span
+                  className="px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em]"
+                  style={{ background: 'var(--color-espresso)', color: 'var(--color-ivory)' }}
+                >
+                  {badge}
+                </span>
+              )}
+              {product.isSale && (
+                <span
+                  className="px-3 py-1.5 text-xs font-bold uppercase tracking-[0.16em]"
+                  style={{ background: 'var(--color-champagne)', color: 'var(--color-espresso)' }}
+                >
+                  Sale
+                </span>
+              )}
+            </>
+          )}
+        </div>
 
-        {/* Wishlist Button */}
+        {/* Wishlist button — top right */}
         <button
           type="button"
-          onClick={() => toggleWishlist(product)}
+          onClick={handleWishlist}
           aria-label={saved ? `Remove ${product.name} from wishlist` : `Save ${product.name} to wishlist`}
           aria-pressed={saved}
-          className="absolute right-3 top-3 z-10 flex h-8 w-8 items-center justify-center rounded-full bg-obsidian/70 backdrop-blur-md text-ivory border border-gold/20 transition-all duration-300 hover:bg-gold hover:text-obsidian hover:scale-110"
+          className={`absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full transition-all duration-300 ${wishAnimating ? 'animate-heart-pop' : ''}`}
+          style={{
+            background: 'rgba(250,248,245,0.95)',
+            backdropFilter: 'blur(8px)',
+            border: '1px solid rgba(0,0,0,0.1)',
+            color: saved ? '#C4A35A' : 'var(--color-charcoal)',
+            opacity: saved ? 1 : 0,
+          }}
+          onMouseEnter={(e) => {
+            e.currentTarget.style.opacity = '1';
+            e.currentTarget.style.color = saved ? '#8A6D35' : 'var(--color-espresso)';
+          }}
+          onMouseLeave={(e) => {
+            e.currentTarget.style.opacity = saved ? '1' : '0';
+            e.currentTarget.style.color = saved ? '#C4A35A' : 'var(--color-charcoal)';
+          }}
         >
           <svg
-            className="h-4 w-4"
+            className="h-5 w-5"
             viewBox="0 0 24 24"
             fill={saved ? 'currentColor' : 'none'}
             stroke="currentColor"
@@ -82,40 +137,51 @@ export default function ProductCard({ product, badge, priority = false }: Produc
           </svg>
         </button>
 
-        {/* Quick Add Button */}
+        {/* Quick Add — slides up on hover */}
         {!soldOut && (
           <button
             type="button"
-            onClick={() => addToCart(product, 1)}
-            className="absolute inset-x-3 bottom-3 z-10 flex items-center justify-center gap-2 bg-gold/90 backdrop-blur-md py-2.5 text-[10px] font-bold uppercase tracking-[0.18em] text-obsidian opacity-0 transition-all duration-300 transform translate-y-2 group-hover:opacity-100 group-hover:translate-y-0 hover:bg-gold shadow-lg"
+            onClick={handleQuickAdd}
+            className="absolute inset-x-0 bottom-0 z-10 min-h-[48px] py-3 text-xs font-semibold uppercase tracking-[0.18em] transition-all duration-300 transform translate-y-full group-hover:translate-y-0"
+            style={{
+              background: added ? 'var(--color-champagne)' : 'var(--color-espresso)',
+              color: added ? 'var(--color-espresso)' : '#F5F1E8',
+            }}
           >
-            <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
-            </svg>
-            Quick Add
+            {added ? '✓ Added' : 'Quick Add'}
           </button>
         )}
       </div>
 
-      {/* Info */}
-      <div className="flex flex-col flex-grow pt-3.5 pb-2 px-1">
-        <div className="flex items-center justify-between text-[10px] uppercase tracking-[0.18em] text-stone">
-          <span>{product.gender}</span>
+      {/* Product info */}
+      <div className="flex flex-col pt-4 pb-2">
+        <div
+          className="flex items-center justify-between text-xs font-medium uppercase tracking-[0.18em] mb-1.5"
+          style={{ color: 'var(--color-taupe)' }}
+        >
           <span>{product.category}</span>
+          {product.rating > 0 && (
+            <span style={{ color: 'var(--color-champagne)' }}>
+              {'★'.repeat(Math.round(product.rating))}{'☆'.repeat(5 - Math.round(product.rating))}
+            </span>
+          )}
         </div>
 
-        <h3 className="mt-1.5 font-heading text-lg leading-snug text-ivory transition-colors group-hover:text-gold">
-          <Link href={`/products/${product.id}`}>
-            {product.name}
-          </Link>
+        <h3
+          className="font-heading text-lg leading-snug transition-opacity duration-200 group-hover:opacity-75"
+          style={{ color: 'var(--color-espresso)', fontWeight: 500 }}
+        >
+          <Link href={`/products/${product.id}`}>{product.name}</Link>
         </h3>
 
-        <div className="mt-2 flex items-baseline gap-2">
-          <span className="text-sm font-semibold text-gold">
+        <div className="mt-2 flex items-baseline gap-2.5">
+          <span className="text-base font-semibold" style={{ color: 'var(--color-espresso)' }}>
             {product.salePrice ?? product.price}
           </span>
           {product.salePrice && (
-            <span className="text-xs text-stone line-through">{product.price}</span>
+            <span className="text-sm line-through font-normal" style={{ color: 'var(--color-taupe)' }}>
+              {product.price}
+            </span>
           )}
         </div>
       </div>

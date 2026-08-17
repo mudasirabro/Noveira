@@ -9,54 +9,67 @@ export default function WishlistPage() {
 
   if (!hydrated) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-obsidian text-stone">
-        <p className="text-[11px] uppercase tracking-[0.2em]">Loading wishlist...</p>
+      <main className="flex min-h-screen items-center justify-center" style={{ background: 'var(--color-bg)' }}>
+        <p className="text-label" style={{ color: 'var(--color-stone)' }}>Loading wishlist...</p>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-obsidian text-ivory">
-      <section className="border-b border-gold/15 bg-surface py-14 px-6 text-center grain relative">
-        <div className="mx-auto max-w-4xl">
-          <p className="text-[10px] uppercase tracking-[0.3em] text-gold font-semibold">Personal Selection</p>
-          <h1 className="mt-3 font-heading text-4xl sm:text-5xl text-ivory">Wishlist</h1>
-          <p className="mt-3 text-xs text-stone">
-            {wishlistItems.length} {wishlistItems.length === 1 ? 'piece' : 'pieces'} saved in your atelier list
-          </p>
-        </div>
-      </section>
+    <main style={{ background: 'var(--color-bg)', minHeight: '100vh' }}>
+      {/* Header */}
+      <div
+        className="py-16 px-6 text-center"
+        style={{ background: 'var(--color-bg-alt)', borderBottom: '1px solid var(--color-parchment)' }}
+      >
+        <p className="text-label mb-3">Personal Selection</p>
+        <h1
+          className="font-heading"
+          style={{ fontSize: 'clamp(2rem, 5vw, 3.5rem)', fontWeight: 400, color: 'var(--color-espresso)' }}
+        >
+          Wishlist
+        </h1>
+        <p className="mt-3 text-sm" style={{ color: 'var(--color-taupe)' }}>
+          {wishlistItems.length} {wishlistItems.length === 1 ? 'piece' : 'pieces'} saved
+        </p>
+      </div>
 
-      <div className="mx-auto max-w-7xl px-6 py-14">
+      <div className="mx-auto max-w-7xl px-6 md:px-10 py-14">
         {wishlistItems.length === 0 ? (
-          <div className="border border-gold/15 bg-surface py-20 text-center rounded-sm">
-            <h2 className="font-heading text-2xl text-ivory">Nothing saved yet</h2>
-            <p className="mt-2 text-xs text-stone">
-              Click the heart on any item in our Women, Men, or Children collections to save it here.
+          <div className="py-24 text-center" style={{ borderTop: '1px solid var(--color-parchment)' }}>
+            <h2 className="font-heading text-3xl mb-4" style={{ fontWeight: 400, color: 'var(--color-espresso)' }}>
+              Nothing saved yet
+            </h2>
+            <p className="text-sm mb-10" style={{ color: 'var(--color-taupe)' }}>
+              Click the heart on any item to save it to your wishlist.
             </p>
-            <Link href="/products" className="mt-8 btn-primary">
-              <span>Browse The Collection</span>
+            <Link href="/products" className="btn-primary">
+              <span>Browse the Collection</span>
             </Link>
           </div>
         ) : (
           <>
-            <div className="mb-8 flex items-center justify-end border-b border-gold/15 pb-4">
+            <div
+              className="mb-10 flex items-center justify-end pb-4"
+              style={{ borderBottom: '1px solid var(--color-parchment)' }}
+            >
               <button
                 type="button"
                 onClick={clearWishlist}
-                className="text-[10px] uppercase tracking-[0.18em] text-stone hover:text-gold transition-colors underline decoration-gold/20 underline-offset-4"
+                className="text-[10px] uppercase tracking-[0.2em] transition-opacity hover:opacity-60 underline underline-offset-4"
+                style={{ color: 'var(--color-stone)', textDecorationColor: 'var(--color-parchment)' }}
               >
-                Clear All Saved
+                Clear All
               </button>
             </div>
 
-            <div className="grid grid-cols-2 gap-x-6 gap-y-10 lg:grid-cols-4">
+            <div className="grid grid-cols-2 gap-x-4 gap-y-12 md:grid-cols-3 lg:grid-cols-4">
               {wishlistItems.map((product, index) => (
                 <ProductCard key={product.id} product={product} priority={index < 4} />
               ))}
             </div>
 
-            <div className="mt-14 text-center">
+            <div className="mt-16 text-center">
               <Link href="/products" className="btn-outline">
                 <span>Continue Shopping</span>
               </Link>

@@ -16,10 +16,10 @@ const FREE_SHIPPING_THRESHOLD = 5000;
 const SHIPPING_FLAT_RATE = 200;
 
 const FIELDS = [
-  { name: 'fullName', label: 'Full Name', type: 'text', autoComplete: 'name' },
-  { name: 'email', label: 'Email Address', type: 'email', autoComplete: 'email' },
-  { name: 'phone', label: 'Phone Number', type: 'tel', autoComplete: 'tel' },
-  { name: 'city', label: 'City', type: 'text', autoComplete: 'address-level2' },
+  { name: 'fullName', label: 'Full Name', type: 'text', autoComplete: 'name', placeholder: 'e.g. Ayesha Khan' },
+  { name: 'email', label: 'Email Address', type: 'email', autoComplete: 'email', placeholder: 'ayesha@example.com' },
+  { name: 'phone', label: 'Phone Number', type: 'tel', autoComplete: 'tel', placeholder: '+92 300 1234567' },
+  { name: 'city', label: 'City', type: 'text', autoComplete: 'address-level2', placeholder: 'e.g. Lahore' },
 ] as const;
 
 export default function CheckoutPage() {
@@ -91,21 +91,21 @@ export default function CheckoutPage() {
 
   if (!hydrated) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-obsidian text-stone">
-        <p className="text-[11px] uppercase tracking-[0.2em]">Loading checkout...</p>
+      <main className="flex min-h-screen items-center justify-center" style={{ background: 'var(--color-bg)' }}>
+        <p className="text-xs uppercase tracking-[0.2em] font-semibold" style={{ color: 'var(--color-taupe)' }}>Loading checkout...</p>
       </main>
     );
   }
 
   if (cartItems.length === 0) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-obsidian px-6 text-ivory">
+      <main className="flex min-h-screen items-center justify-center px-6" style={{ background: 'var(--color-bg)' }}>
         <div className="max-w-md text-center">
-          <h1 className="font-heading text-3xl text-ivory">Your Shopping Bag is Empty</h1>
-          <p className="mt-3 text-xs text-stone">
+          <h1 className="font-heading text-4xl" style={{ color: 'var(--color-espresso)' }}>Your Shopping Bag is Empty</h1>
+          <p className="mt-3 text-base" style={{ color: 'var(--color-charcoal)' }}>
             Add items to your bag before checking out.
           </p>
-          <Link href="/products" className="mt-8 btn-primary">
+          <Link href="/products" className="mt-8 inline-block btn-primary">
             <span>Browse Collections</span>
           </Link>
         </div>
@@ -113,40 +113,40 @@ export default function CheckoutPage() {
     );
   }
 
-  const inputClass =
-    'w-full border border-gold/20 bg-surface px-4 py-3 text-xs text-ivory placeholder:text-stone/60 focus:border-gold focus:outline-none transition-colors rounded-sm';
-
   return (
-    <main className="min-h-screen bg-obsidian text-ivory">
-      <div className="mx-auto max-w-4xl px-6 py-14">
-        <h1 className="font-heading text-4xl sm:text-5xl text-ivory">Atelier Checkout</h1>
+    <main style={{ background: 'var(--color-bg)', minHeight: '100vh' }}>
+      <div className="mx-auto max-w-4xl px-6 py-16">
+        <h1 className="font-heading text-4xl sm:text-5xl" style={{ color: 'var(--color-espresso)', fontWeight: 400 }}>
+          Atelier Checkout
+        </h1>
 
         {/* Progress steps */}
         <ol className="mt-8 flex items-center gap-4">
-          {['Shipping', 'Payment'].map((label, index) => {
+          {['Shipping Details', 'Payment Option'].map((label, index) => {
             const number = index + 1;
             const active = step >= number;
             return (
               <li key={label} className="flex flex-1 items-center gap-3 last:flex-none">
                 <span
-                  className={`flex h-8 w-8 items-center justify-center border text-xs font-bold rounded-full ${
-                    active
-                      ? 'border-gold bg-gold text-obsidian'
-                      : 'border-gold/20 bg-surface text-stone'
-                  }`}
+                  className="flex h-9 w-9 items-center justify-center text-sm font-bold rounded-full transition-colors"
+                  style={{
+                    background: active ? 'var(--color-espresso)' : 'transparent',
+                    color: active ? '#F5F1E8' : 'var(--color-taupe)',
+                    border: active ? '2px solid var(--color-espresso)' : '1.5px solid var(--color-parchment)'
+                  }}
                 >
                   {number}
                 </span>
                 <span
-                  className={`text-[11px] uppercase tracking-[0.18em] ${
-                    active ? 'text-gold font-semibold' : 'text-stone'
-                  }`}
+                  className="text-xs uppercase tracking-[0.18em] font-semibold"
+                  style={{ color: active ? 'var(--color-espresso)' : 'var(--color-taupe)' }}
                 >
                   {label}
                 </span>
                 {index === 0 && (
                   <span
-                    className={`h-px flex-1 ${step >= 2 ? 'bg-gold' : 'bg-gold/20'}`}
+                    className="h-0.5 flex-1"
+                    style={{ background: step >= 2 ? 'var(--color-espresso)' : 'var(--color-parchment)' }}
                     aria-hidden="true"
                   />
                 )}
@@ -155,17 +155,27 @@ export default function CheckoutPage() {
           })}
         </ol>
 
-        <form onSubmit={handleSubmit} className="mt-10 border border-gold/15 bg-surface p-7 md:p-9 rounded-sm">
+        <form
+          onSubmit={handleSubmit}
+          className="mt-10 p-8 md:p-10"
+          style={{
+            background: 'var(--color-bg-alt)',
+            border: '1.5px solid var(--color-parchment)'
+          }}
+        >
           {step === 1 && (
             <>
-              <h2 className="font-heading text-2xl text-ivory">Delivery Details</h2>
+              <h2 className="font-heading text-3xl mb-6" style={{ color: 'var(--color-espresso)', fontWeight: 400 }}>
+                Delivery Details
+              </h2>
 
-              <div className="mt-6 grid gap-5 md:grid-cols-2">
+              <div className="grid gap-6 md:grid-cols-2">
                 {FIELDS.map((field) => (
                   <div key={field.name}>
                     <label
                       htmlFor={field.name}
-                      className="mb-1.5 block text-[10px] uppercase tracking-[0.16em] text-gold font-semibold"
+                      className="mb-2 block text-xs uppercase tracking-[0.16em] font-semibold"
+                      style={{ color: 'var(--color-espresso)' }}
                     >
                       {field.label}
                     </label>
@@ -177,16 +187,18 @@ export default function CheckoutPage() {
                       required
                       value={formData[field.name]}
                       onChange={handleChange}
-                      className={inputClass}
+                      placeholder={field.placeholder}
+                      className="input-light"
                     />
                   </div>
                 ))}
               </div>
 
-              <div className="mt-5">
+              <div className="mt-6">
                 <label
                   htmlFor="address"
-                  className="mb-1.5 block text-[10px] uppercase tracking-[0.16em] text-gold font-semibold"
+                  className="mb-2 block text-xs uppercase tracking-[0.16em] font-semibold"
+                  style={{ color: 'var(--color-espresso)' }}
                 >
                   Street Address
                 </label>
@@ -198,14 +210,16 @@ export default function CheckoutPage() {
                   required
                   value={formData.address}
                   onChange={handleChange}
-                  className={inputClass}
+                  placeholder="House / Apartment number, Street name"
+                  className="input-light"
                 />
               </div>
 
-              <div className="mt-5 md:w-1/2">
+              <div className="mt-6 md:w-1/2">
                 <label
                   htmlFor="zipCode"
-                  className="mb-1.5 block text-[10px] uppercase tracking-[0.16em] text-gold font-semibold"
+                  className="mb-2 block text-xs uppercase tracking-[0.16em] font-semibold"
+                  style={{ color: 'var(--color-espresso)' }}
                 >
                   Postal Code
                 </label>
@@ -217,13 +231,14 @@ export default function CheckoutPage() {
                   required
                   value={formData.zipCode}
                   onChange={handleChange}
-                  className={inputClass}
+                  placeholder="e.g. 54000"
+                  className="input-light"
                 />
               </div>
 
               <button
                 type="submit"
-                className="mt-8 w-full btn-primary justify-center"
+                className="mt-10 w-full btn-primary justify-center"
               >
                 <span>Continue to Payment</span>
               </button>
@@ -232,21 +247,23 @@ export default function CheckoutPage() {
 
           {step === 2 && (
             <>
-              <h2 className="font-heading text-2xl text-ivory">Payment Option</h2>
+              <h2 className="font-heading text-3xl mb-6" style={{ color: 'var(--color-espresso)', fontWeight: 400 }}>
+                Payment Option
+              </h2>
 
               <fieldset className="mt-6">
                 <legend className="sr-only">Payment method</legend>
                 {[
-                  { value: 'cod', title: 'Cash on Delivery', hint: 'Pay upon receiving your order.' },
-                  { value: 'card', title: 'Card / Bank Transfer', hint: 'Payment details confirmed with concierge.' },
+                  { value: 'cod', title: 'Cash on Delivery', hint: 'Pay upon receiving your order at your doorstep.' },
+                  { value: 'card', title: 'Card / Bank Transfer', hint: 'Payment instructions will be sent via concierge.' },
                 ].map((option) => (
                   <label
                     key={option.value}
-                    className={`mb-3 flex cursor-pointer items-start gap-4 border p-4 transition-all duration-200 rounded-sm ${
-                      formData.paymentMethod === option.value
-                        ? 'border-gold bg-muted/80'
-                        : 'border-gold/15 bg-void hover:border-gold/40'
-                    }`}
+                    className="mb-4 flex cursor-pointer items-start gap-4 p-5 transition-all duration-200 border"
+                    style={{
+                      borderColor: formData.paymentMethod === option.value ? 'var(--color-espresso)' : 'var(--color-parchment)',
+                      background: formData.paymentMethod === option.value ? 'var(--color-bg)' : 'transparent',
+                    }}
                   >
                     <input
                       type="radio"
@@ -254,36 +271,36 @@ export default function CheckoutPage() {
                       value={option.value}
                       checked={formData.paymentMethod === option.value}
                       onChange={handleChange}
-                      className="mt-1 accent-gold"
+                      className="mt-1 h-4 w-4 accent-[var(--color-espresso)]"
                     />
                     <span>
-                      <span className="block text-xs font-semibold text-ivory">{option.title}</span>
-                      <span className="mt-0.5 block text-[11px] text-stone">{option.hint}</span>
+                      <span className="block text-base font-semibold" style={{ color: 'var(--color-espresso)' }}>{option.title}</span>
+                      <span className="mt-1 block text-sm" style={{ color: 'var(--color-charcoal)' }}>{option.hint}</span>
                     </span>
                   </label>
                 ))}
               </fieldset>
 
-              <dl className="mt-7 border-t border-gold/15 pt-6 text-xs space-y-2.5">
+              <dl className="mt-8 border-t border-parchment pt-6 text-base space-y-3" style={{ borderTop: '1.5px solid var(--color-parchment)' }}>
                 <div className="flex justify-between">
-                  <dt className="text-stone">
+                  <dt style={{ color: 'var(--color-charcoal)' }}>
                     Subtotal ({itemCount} {itemCount === 1 ? 'piece' : 'pieces'})
                   </dt>
-                  <dd className="text-ivory font-semibold">{formatPrice(subtotal)}</dd>
+                  <dd className="font-semibold" style={{ color: 'var(--color-espresso)' }}>{formatPrice(subtotal)}</dd>
                 </div>
                 <div className="flex justify-between">
-                  <dt className="text-stone">Shipping</dt>
-                  <dd className="text-gold font-semibold">
+                  <dt style={{ color: 'var(--color-charcoal)' }}>Shipping</dt>
+                  <dd className="font-semibold" style={{ color: shipping === 0 ? 'var(--color-champagne)' : 'var(--color-espresso)' }}>
                     {shipping === 0 ? 'Complimentary' : formatPrice(shipping)}
                   </dd>
                 </div>
-                <div className="mt-2 flex justify-between border-t border-gold/15 pt-3">
-                  <dt className="font-heading text-lg text-ivory">Total</dt>
-                  <dd className="font-heading text-xl text-gold font-bold">{formatPrice(total)}</dd>
+                <div className="mt-3 flex justify-between pt-4" style={{ borderTop: '1.5px solid var(--color-parchment)' }}>
+                  <dt className="font-heading text-xl" style={{ color: 'var(--color-espresso)' }}>Total</dt>
+                  <dd className="font-heading text-2xl font-semibold" style={{ color: 'var(--color-espresso)' }}>{formatPrice(total)}</dd>
                 </div>
               </dl>
 
-              <div className="mt-8 flex gap-4">
+              <div className="mt-10 flex gap-4">
                 <button
                   type="button"
                   onClick={() => setStep(1)}

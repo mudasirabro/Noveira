@@ -42,6 +42,7 @@ const NAV: { label: string; href?: string; items?: DropItem[] }[] = [
       { href: '/products?gender=Children&category=Playsuits', label: 'Playsuits' },
     ],
   },
+  { label: 'New Arrivals', href: '/products' },
   { label: 'Sale', href: '/products?sale=true' },
 ];
 
@@ -59,7 +60,7 @@ export default function Header() {
   const wishlistCount = wishlistHydrated ? getWishlistCount() : 0;
 
   useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 20);
+    const onScroll = () => setScrolled(window.scrollY > 30);
     window.addEventListener('scroll', onScroll, { passive: true });
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
@@ -81,212 +82,271 @@ export default function Header() {
     };
   }, []);
 
+  useEffect(() => {
+    document.body.style.overflow = isMobileOpen ? 'hidden' : '';
+    return () => { document.body.style.overflow = ''; };
+  }, [isMobileOpen]);
+
   return (
-    <header
-      className={`sticky top-0 z-50 transition-all duration-500 ${
-        scrolled
-          ? 'bg-obsidian/95 backdrop-blur-xl shadow-[0_4px_40px_rgba(0,0,0,0.5)]'
-          : 'bg-obsidian/80 backdrop-blur-md'
-      }`}
-      style={{ borderBottom: '1px solid rgba(201,165,90,0.12)' }}
-    >
-      {/* Announcement bar */}
-      <div
-        className="text-center py-2 text-[10px] uppercase tracking-[0.28em]"
-        style={{
-          background: 'linear-gradient(90deg, transparent, rgba(201,165,90,0.08), transparent)',
-          borderBottom: '1px solid rgba(201,165,90,0.08)',
-          color: 'var(--color-gold)',
-        }}
+    <>
+      <header
+        className={`sticky top-0 z-50 transition-all duration-300 ${
+          scrolled
+            ? 'bg-white/98 backdrop-blur-xl shadow-[0_1px_0_0_rgba(0,0,0,0.08),0_4px_20px_rgba(0,0,0,0.04)]'
+            : 'bg-[#FAF8F5]/98 backdrop-blur-sm'
+        }`}
       >
-        Free delivery on orders above Rs.&thinsp;5,000 &nbsp;·&nbsp; New arrivals: Women · Men · Children
-      </div>
+        {/* Announcement bar */}
+        <div
+          className="text-center py-3 text-xs sm:text-sm uppercase tracking-[0.2em] font-medium"
+          style={{ background: 'var(--color-bg-dark)', color: 'var(--color-text-primary)' }}
+        >
+          Complimentary Delivery on Orders Above PKR 5,000
+        </div>
 
-      <div ref={navRef} className="mx-auto flex max-w-7xl items-center justify-between gap-4 px-4 py-3.5 md:px-8">
+        <div ref={navRef} className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 md:px-10">
 
-        {/* Logo */}
-        <Link href="/" aria-label="Noveira home" className="group flex items-baseline gap-2.5 flex-shrink-0">
-          <span
-            className="font-heading text-2xl leading-none tracking-[0.32em] transition-colors duration-300"
-            style={{ color: 'var(--color-gold)' }}
-          >
-            NOVEIRA
-          </span>
-          <span className="hidden text-[9px] uppercase tracking-[0.38em] sm:block" style={{ color: 'var(--color-stone)' }}>
-            Atelier
-          </span>
-        </Link>
+          {/* Logo */}
+          <Link href="/" aria-label="Noveira home" className="flex-shrink-0 group">
+            <div className="flex flex-col items-start leading-none">
+              <span
+                className="font-heading text-3xl tracking-[0.28em] transition-opacity duration-300 group-hover:opacity-75"
+                style={{ color: 'var(--color-espresso)', fontWeight: 500 }}
+              >
+                NOVEIRA
+              </span>
+              <span
+                className="text-[9px] uppercase tracking-[0.45em] mt-1 font-medium"
+                style={{ color: 'var(--color-taupe)' }}
+              >
+                Atelier
+              </span>
+            </div>
+          </Link>
 
-        {/* Desktop nav */}
-        <nav className="hidden items-center gap-8 md:flex" aria-label="Main">
-          {NAV.map((item) =>
-            item.items ? (
-              <div key={item.label} className="relative">
-                <button
-                  type="button"
-                  onMouseEnter={() => setOpenMenu(item.label)}
-                  onMouseLeave={() => setOpenMenu(null)}
-                  onClick={() => setOpenMenu(openMenu === item.label ? null : item.label)}
-                  className="nav-link flex items-center gap-1.5 text-[11px] uppercase tracking-[0.18em] transition-colors duration-200"
-                  style={{ color: openMenu === item.label ? 'var(--color-gold)' : 'var(--color-cream)' }}
-                >
-                  {item.label}
-                  <svg className={`h-3 w-3 transition-transform duration-200 ${openMenu === item.label ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M19 9l-7 7-7-7" />
-                  </svg>
-                </button>
-                {openMenu === item.label && (
-                  <div
-                    className="absolute left-0 top-full mt-3 w-52 py-2 animate-scale-in"
-                    style={{
-                      background: 'var(--color-surface)',
-                      border: '1px solid rgba(201,165,90,0.18)',
-                      boxShadow: '0 24px 60px rgba(0,0,0,0.6)',
-                    }}
+          {/* Desktop nav — centered */}
+          <nav className="hidden absolute left-1/2 -translate-x-1/2 items-center gap-9 md:flex" aria-label="Main navigation">
+            {NAV.map((item) =>
+              item.items ? (
+                <div key={item.label} className="relative">
+                  <button
+                    type="button"
                     onMouseEnter={() => setOpenMenu(item.label)}
                     onMouseLeave={() => setOpenMenu(null)}
+                    onClick={() => setOpenMenu(openMenu === item.label ? null : item.label)}
+                    className="nav-link flex items-center gap-1.5 text-sm uppercase tracking-[0.18em] transition-colors duration-200 py-1"
+                    style={{ color: 'var(--color-espresso)', fontWeight: 500 }}
                   >
-                    {item.items.map((sub) => (
-                      <Link
-                        key={sub.href}
-                        href={sub.href}
-                        onClick={() => setOpenMenu(null)}
-                        className="block px-4 py-2.5 text-[11px] uppercase tracking-[0.14em] transition-all duration-200"
-                        style={{ color: 'var(--color-cream)' }}
-                        onMouseEnter={(e) => {
-                          (e.currentTarget as HTMLAnchorElement).style.color = 'var(--color-gold)';
-                          (e.currentTarget as HTMLAnchorElement).style.paddingLeft = '1.5rem';
-                        }}
-                        onMouseLeave={(e) => {
-                          (e.currentTarget as HTMLAnchorElement).style.color = 'var(--color-cream)';
-                          (e.currentTarget as HTMLAnchorElement).style.paddingLeft = '1rem';
-                        }}
-                      >
-                        {sub.label}
-                      </Link>
-                    ))}
-                  </div>
-                )}
-              </div>
-            ) : (
-              <Link
-                key={item.label}
-                href={item.href!}
-                className="nav-link text-[11px] uppercase tracking-[0.18em] transition-colors duration-200"
-                style={{ color: 'var(--color-cream)' }}
-                onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--color-gold)')}
-                onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--color-cream)')}
-              >
-                {item.label}
-              </Link>
-            )
-          )}
-        </nav>
+                    {item.label}
+                    <svg
+                      className={`h-3 w-3 transition-transform duration-300 ${openMenu === item.label ? 'rotate-180' : ''}`}
+                      fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
 
-        {/* Icons */}
-        <div className="flex items-center gap-5">
-          {/* Wishlist */}
-          <Link
-            href="/wishlist"
-            className="relative transition-colors duration-200"
-            aria-label={`Wishlist, ${wishlistCount} items`}
-            style={{ color: 'var(--color-stone)' }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--color-gold)')}
-            onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--color-stone)')}
-          >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
-            </svg>
-            {wishlistCount > 0 && (
-              <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold"
-                style={{ background: 'var(--color-gold)', color: 'var(--color-obsidian)' }}>
-                {wishlistCount}
-              </span>
+                  {/* Dropdown */}
+                  {openMenu === item.label && (
+                    <div
+                      className="absolute left-1/2 -translate-x-1/2 top-full mt-3 w-56 py-3 animate-slide-down"
+                      style={{
+                        background: 'var(--color-bg)',
+                        border: '1.5px solid var(--color-parchment)',
+                        boxShadow: '0 16px 48px rgba(0,0,0,0.1)',
+                      }}
+                      onMouseEnter={() => setOpenMenu(item.label)}
+                      onMouseLeave={() => setOpenMenu(null)}
+                    >
+                      {item.items.map((sub) => (
+                        <Link
+                          key={sub.href}
+                          href={sub.href}
+                          onClick={() => setOpenMenu(null)}
+                          className="block px-6 py-2.5 text-xs uppercase tracking-[0.14em] font-medium transition-all duration-200 hover:pl-8"
+                          style={{ color: 'var(--color-charcoal)' }}
+                          onMouseEnter={(e) => {
+                            (e.currentTarget as HTMLAnchorElement).style.color = 'var(--color-espresso)';
+                          }}
+                          onMouseLeave={(e) => {
+                            (e.currentTarget as HTMLAnchorElement).style.color = 'var(--color-charcoal)';
+                          }}
+                        >
+                          {sub.label}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              ) : (
+                <Link
+                  key={item.label}
+                  href={item.href!}
+                  className="nav-link text-sm uppercase tracking-[0.18em] transition-colors duration-200 py-1"
+                  style={{ color: 'var(--color-espresso)', fontWeight: 500 }}
+                >
+                  {item.label}
+                </Link>
+              )
             )}
-          </Link>
+          </nav>
 
-          {/* Cart */}
-          <Link
-            href="/cart"
-            className="relative transition-colors duration-200"
-            aria-label={`Cart, ${cartCount} items`}
-            style={{ color: 'var(--color-stone)' }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--color-gold)')}
-            onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--color-stone)')}
-          >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
-            </svg>
-            {cartCount > 0 && (
-              <span className="absolute -right-1.5 -top-1.5 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold"
-                style={{ background: 'var(--color-gold)', color: 'var(--color-obsidian)' }}>
-                {cartCount}
-              </span>
-            )}
-          </Link>
+          {/* Icons */}
+          <div className="flex items-center gap-6">
+            {/* Search */}
+            <Link
+              href="/search"
+              className="hidden md:flex items-center p-2 transition-opacity duration-200 hover:opacity-60"
+              aria-label="Search"
+              style={{ color: 'var(--color-espresso)' }}
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+              </svg>
+            </Link>
 
-          {/* Admin */}
-          <Link
-            href="/admin/login"
-            className="hidden transition-colors duration-200 md:block"
-            aria-label="Admin"
-            style={{ color: 'var(--color-stone)' }}
-            onMouseEnter={(e) => (e.currentTarget.style.color = 'var(--color-gold)')}
-            onMouseLeave={(e) => (e.currentTarget.style.color = 'var(--color-stone)')}
-          >
-            <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
-            </svg>
-          </Link>
+            {/* Wishlist */}
+            <Link
+              href="/wishlist"
+              className="relative p-2 transition-opacity duration-200 hover:opacity-60"
+              aria-label={`Wishlist, ${wishlistCount} items`}
+              style={{ color: 'var(--color-espresso)' }}
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+              </svg>
+              {wishlistCount > 0 && (
+                <span
+                  className="absolute top-0 right-0 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold"
+                  style={{ background: 'var(--color-espresso)', color: 'var(--color-ivory)' }}
+                >
+                  {wishlistCount}
+                </span>
+              )}
+            </Link>
 
-          {/* Mobile hamburger */}
+            {/* Cart */}
+            <Link
+              href="/cart"
+              className="relative p-2 transition-opacity duration-200 hover:opacity-60"
+              aria-label={`Cart, ${cartCount} items`}
+              style={{ color: 'var(--color-espresso)' }}
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 11V7a4 4 0 00-8 0v4M5 9h14l1 12H4L5 9z" />
+              </svg>
+              {cartCount > 0 && (
+                <span
+                  className="absolute top-0 right-0 flex h-4 min-w-4 items-center justify-center rounded-full px-1 text-[10px] font-bold"
+                  style={{ background: 'var(--color-espresso)', color: 'var(--color-ivory)' }}
+                >
+                  {cartCount}
+                </span>
+              )}
+            </Link>
+
+            {/* Admin Portal link */}
+            <Link
+              href="/admin/login"
+              className="hidden md:flex items-center gap-1.5 p-2 text-xs font-semibold uppercase tracking-[0.14em] transition-opacity duration-200 hover:opacity-60"
+              aria-label="Admin Portal"
+              style={{ color: 'var(--color-espresso)' }}
+            >
+              <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+              </svg>
+            </Link>
+
+            {/* Mobile hamburger */}
+            <button
+              type="button"
+              onClick={() => setIsMobileOpen((v) => !v)}
+              className="flex flex-col gap-[6px] p-2 transition-opacity hover:opacity-60 md:hidden"
+              aria-label="Toggle menu"
+              aria-expanded={isMobileOpen}
+            >
+              <span
+                className={`block h-0.5 w-6 transition-all duration-300 ${isMobileOpen ? 'translate-y-[8px] rotate-45' : ''}`}
+                style={{ background: 'var(--color-espresso)' }}
+              />
+              <span
+                className={`block h-0.5 w-5 transition-all duration-300 ${isMobileOpen ? 'opacity-0' : ''}`}
+                style={{ background: 'var(--color-espresso)' }}
+              />
+              <span
+                className={`block h-0.5 w-6 transition-all duration-300 ${isMobileOpen ? '-translate-y-[8px] -rotate-45' : ''}`}
+                style={{ background: 'var(--color-espresso)' }}
+              />
+            </button>
+          </div>
+        </div>
+
+        {/* Fine divider */}
+        <div style={{ height: '1px', background: 'var(--color-parchment)' }} />
+      </header>
+
+      {/* Mobile Full-Screen Menu */}
+      <div
+        className={`mobile-menu-overlay flex flex-col ${isMobileOpen ? 'open' : ''}`}
+        aria-hidden={!isMobileOpen}
+      >
+        {/* Mobile header */}
+        <div
+          className="flex items-center justify-between px-6 py-5"
+          style={{ borderBottom: '1.5px solid var(--color-parchment)' }}
+        >
+          <Link href="/" onClick={() => setIsMobileOpen(false)}>
+            <span className="font-heading text-3xl tracking-[0.28em]" style={{ color: 'var(--color-espresso)' }}>
+              NOVEIRA
+            </span>
+          </Link>
           <button
             type="button"
-            onClick={() => setIsMobileOpen((v) => !v)}
-            className="transition-colors duration-200 md:hidden"
-            aria-label="Toggle menu"
-            style={{ color: 'var(--color-stone)' }}
+            onClick={() => setIsMobileOpen(false)}
+            className="p-2 transition-opacity hover:opacity-60"
+            aria-label="Close menu"
           >
-            <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              {isMobileOpen
-                ? <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M6 18L18 6M6 6l12 12" />
-                : <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 7h16M4 12h16M4 17h16" />
-              }
+            <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: 'var(--color-espresso)' }}>
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M6 18L18 6M6 6l12 12" />
             </svg>
           </button>
         </div>
-      </div>
 
-      {/* Mobile menu */}
-      {isMobileOpen && (
-        <div
-          className="border-t px-4 py-4 md:hidden animate-fade-in"
-          style={{ background: 'var(--color-surface)', borderColor: 'rgba(201,165,90,0.12)' }}
-        >
-          <nav className="flex flex-col gap-1" aria-label="Mobile">
+        {/* Mobile nav links */}
+        <nav className="flex-1 overflow-y-auto px-6 py-8" aria-label="Mobile navigation">
+          <div className="flex flex-col">
             {NAV.map((item) =>
               item.items ? (
                 <div key={item.label}>
                   <button
                     type="button"
                     onClick={() => setMobileExpanded(mobileExpanded === item.label ? null : item.label)}
-                    className="flex w-full items-center justify-between py-3 text-[11px] uppercase tracking-[0.18em]"
-                    style={{ color: 'var(--color-cream)', borderBottom: '1px solid rgba(201,165,90,0.08)' }}
+                    className="flex w-full items-center justify-between py-5 text-left"
+                    style={{ borderBottom: '1px solid var(--color-parchment)' }}
                   >
-                    {item.label}
-                    <svg className={`h-3 w-3 transition-transform ${mobileExpanded === item.label ? 'rotate-180' : ''}`} fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M19 9l-7 7-7-7" />
+                    <span
+                      className="font-heading text-3xl"
+                      style={{ color: 'var(--color-espresso)' }}
+                    >
+                      {item.label}
+                    </span>
+                    <svg
+                      className={`h-5 w-5 transition-transform duration-300 ${mobileExpanded === item.label ? 'rotate-180' : ''}`}
+                      fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                      style={{ color: 'var(--color-charcoal)' }}
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
                     </svg>
                   </button>
                   {mobileExpanded === item.label && (
-                    <div className="ml-4 flex flex-col gap-1 pb-2">
+                    <div className="py-4 pl-4 flex flex-col gap-2 animate-fade-in">
                       {item.items.map((sub) => (
                         <Link
                           key={sub.href}
                           href={sub.href}
                           onClick={() => setIsMobileOpen(false)}
-                          className="py-2 text-[11px] uppercase tracking-[0.14em]"
-                          style={{ color: 'var(--color-stone)' }}
+                          className="py-3 text-sm uppercase tracking-[0.16em] font-medium transition-colors hover:opacity-60"
+                          style={{ color: 'var(--color-charcoal)' }}
                         >
                           {sub.label}
                         </Link>
@@ -299,8 +359,8 @@ export default function Header() {
                   key={item.label}
                   href={item.href!}
                   onClick={() => setIsMobileOpen(false)}
-                  className="py-3 text-[11px] uppercase tracking-[0.18em]"
-                  style={{ color: 'var(--color-cream)', borderBottom: '1px solid rgba(201,165,90,0.08)' }}
+                  className="py-5 font-heading text-3xl transition-opacity hover:opacity-60"
+                  style={{ color: 'var(--color-espresso)', borderBottom: '1px solid var(--color-parchment)' }}
                 >
                   {item.label}
                 </Link>
@@ -309,14 +369,47 @@ export default function Header() {
             <Link
               href="/wishlist"
               onClick={() => setIsMobileOpen(false)}
-              className="py-3 text-[11px] uppercase tracking-[0.18em]"
-              style={{ color: 'var(--color-cream)' }}
+              className="py-5 font-heading text-3xl transition-opacity hover:opacity-60"
+              style={{ color: 'var(--color-espresso)', borderBottom: '1px solid var(--color-parchment)' }}
             >
               Wishlist{wishlistCount > 0 ? ` (${wishlistCount})` : ''}
             </Link>
-          </nav>
+            <Link
+              href="/cart"
+              onClick={() => setIsMobileOpen(false)}
+              className="py-5 font-heading text-3xl transition-opacity hover:opacity-60"
+              style={{ color: 'var(--color-espresso)', borderBottom: '1px solid var(--color-parchment)' }}
+            >
+              Bag{cartCount > 0 ? ` (${cartCount})` : ''}
+            </Link>
+            <Link
+              href="/admin/login"
+              onClick={() => setIsMobileOpen(false)}
+              className="py-5 font-heading text-3xl transition-opacity hover:opacity-60"
+              style={{ color: 'var(--color-champagne)' }}
+            >
+              Admin Portal
+            </Link>
+          </div>
+        </nav>
+
+        {/* Mobile footer */}
+        <div
+          className="px-6 py-6 flex items-center gap-6"
+          style={{ borderTop: '1px solid var(--color-parchment)' }}
+        >
+          {['Instagram', 'Pinterest', 'X'].map((s) => (
+            <a
+              key={s}
+              href="#"
+              className="text-xs uppercase tracking-[0.2em] font-medium transition-opacity hover:opacity-60"
+              style={{ color: 'var(--color-charcoal)' }}
+            >
+              {s}
+            </a>
+          ))}
         </div>
-      )}
-    </header>
+      </div>
+    </>
   );
 }

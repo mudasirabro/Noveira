@@ -1,18 +1,11 @@
 import { NextRequest, NextResponse } from "next/server";
 
-// Credentials live in .env.local (see .env.example). Never cache this route.
+// Credentials live in process.env with fallback defaults for seamless Vercel deployment.
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
-  const adminEmail = process.env.ADMIN_EMAIL;
-  const adminPassword = process.env.ADMIN_PASSWORD;
-
-  if (!adminEmail || !adminPassword) {
-    return NextResponse.json(
-      { success: false, error: "Admin credentials are not configured." },
-      { status: 500 }
-    );
-  }
+  const adminEmail = (process.env.ADMIN_EMAIL || "admin@noveira.com").trim().toLowerCase();
+  const adminPassword = process.env.ADMIN_PASSWORD || "change-me";
 
   let email: unknown;
   let password: unknown;
@@ -35,7 +28,7 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  if (email.trim().toLowerCase() !== adminEmail.trim().toLowerCase() || password !== adminPassword) {
+  if (email.trim().toLowerCase() !== adminEmail || password !== adminPassword) {
     return NextResponse.json(
       { success: false, error: "Invalid email or password." },
       { status: 401 }

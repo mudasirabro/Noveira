@@ -1,367 +1,518 @@
+'use client';
+
 import Link from 'next/link';
 import Image from 'next/image';
 import { products } from '@/src/data/products';
 import ProductCard from '@/src/components/ProductCard';
+import { useEffect, useRef } from 'react';
 
 const womenProducts = products.filter((p) => p.gender === 'Women').slice(0, 4);
 const menProducts = products.filter((p) => p.gender === 'Men').slice(0, 4);
 const childrenProducts = products.filter((p) => p.gender === 'Children').slice(0, 4);
-const saleProducts = products.filter((p) => p.isSale).slice(0, 4);
-
-const PERKS = [
-  {
-    icon: (
-      <svg className="h-6 w-6 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V6a2 2 0 10-2 2h2zm0 13C10.832 21 4.786 21 3 13.5 3 6 12 3 12 3s9 3 9 10.5c-1.786 7.5-7.832 7.5-9 7.5z" />
-      </svg>
-    ),
-    label: 'Master Craftsmanship',
-    body: 'Hand-finished garments woven from ethically sourced Italian silk, cashmere, and superfine wool.'
-  },
-  {
-    icon: (
-      <svg className="h-6 w-6 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M5 8h14M5 8a2 2 0 110-4h14a2 2 0 110 4M5 8v10a2 2 0 002 2h10a2 2 0 002-2V8m-9 4h4" />
-      </svg>
-    ),
-    label: 'Express Delivery',
-    body: 'Complimentary shipping across Pakistan on all orders over Rs. 5,000.'
-  },
-  {
-    icon: (
-      <svg className="h-6 w-6 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" />
-      </svg>
-    ),
-    label: 'Bespoke Concierge',
-    body: 'Personal styling assistance, size guidance, and custom alterations for your perfect fit.'
-  },
-  {
-    icon: (
-      <svg className="h-6 w-6 text-gold" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-      </svg>
-    ),
-    label: 'Seamless Returns',
-    body: 'Enjoy stress-free 14-day returns and exchanges with full order tracking.'
-  },
-];
 
 const CATEGORIES = [
   {
-    name: "Women's Collection",
-    gender: "Women",
-    subtitle: "Draped Silk & Sculpted Tailoring",
-    image: "https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=800&h=1000&fit=crop",
-    href: "/products?gender=Women"
+    name: "Women",
+    subtitle: "Autumn / Winter 2026",
+    image: "https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=900&h=1200&fit=crop&q=85",
+    href: "/products?gender=Women",
+    cta: "Explore Women"
   },
   {
-    name: "Men's Collection",
-    gender: "Men",
-    subtitle: "Italian Wool Suits & Fine Knitwear",
-    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=800&h=1000&fit=crop",
-    href: "/products?gender=Men"
+    name: "Men",
+    subtitle: "Autumn / Winter 2026",
+    image: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=900&h=1200&fit=crop&q=85",
+    href: "/products?gender=Men",
+    cta: "Explore Men"
   },
   {
-    name: "Children's Collection",
-    gender: "Children",
-    subtitle: "Pure Linen Playsuits & Soft Cashmere",
-    image: "https://images.unsplash.com/photo-1519238263530-99bdd11df2ea?w=800&h=1000&fit=crop",
-    href: "/products?gender=Children"
+    name: "Children",
+    subtitle: "The Little Atelier",
+    image: "https://images.unsplash.com/photo-1519238263530-99bdd11df2ea?w=900&h=1200&fit=crop&q=85",
+    href: "/products?gender=Children",
+    cta: "Explore Children"
   }
 ];
 
+const EDITORIALS = [
+  {
+    tag: "The Edit",
+    title: "The Art of Everyday Elegance",
+    subtitle: "Pieces that carry purpose and beauty in equal measure. Crafted from pure Italian silk and un-dyed cashmere.",
+    image: "https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&h=1000&fit=crop&q=85",
+    href: "/products?gender=Women",
+    align: "left"
+  },
+  {
+    tag: "For Him",
+    title: "Considered Tailoring",
+    subtitle: "Structure and softness, refined into the modern wardrobe. Sharp shoulders, fluid drape, immaculate seams.",
+    image: "https://images.unsplash.com/photo-1552374196-c4e7ffc6e126?w=800&h=1000&fit=crop&q=85",
+    href: "/products?gender=Men",
+    align: "right"
+  }
+];
+
+function useReveal() {
+  const ref = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            entry.target.classList.add('is-visible');
+          }
+        });
+      },
+      { threshold: 0.08 }
+    );
+    const elements = el.querySelectorAll('.reveal, .reveal-fast');
+    elements.forEach((e) => observer.observe(e));
+    return () => observer.disconnect();
+  }, []);
+  return ref;
+}
+
 export default function Home() {
+  const pageRef = useReveal();
+
   return (
-    <main className="bg-obsidian text-ivory selection:bg-gold selection:text-obsidian overflow-hidden">
-      
-      {/* ── 1. Hero Section ───────────────────────────────────────────── */}
-      <section className="relative min-h-[90vh] flex items-center justify-center border-b border-gold/15 grain">
-        {/* Glow ambient backgrounds */}
-        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] bg-gold/10 rounded-full blur-[140px] pointer-events-none" />
-        <div className="absolute bottom-10 right-10 w-[400px] h-[400px] bg-gold-dim/10 rounded-full blur-[120px] pointer-events-none" />
+    <main ref={pageRef} style={{ background: 'var(--color-bg)', color: 'var(--color-charcoal)' }}>
 
-        <div className="relative z-10 mx-auto max-w-7xl px-6 py-24 text-center">
-          <div className="inline-flex items-center gap-2 rounded-full border border-gold/30 bg-surface/80 px-4 py-1.5 backdrop-blur-md mb-8 animate-fade-in">
-            <span className="h-1.5 w-1.5 rounded-full bg-gold animate-ping" />
-            <span className="text-[10px] uppercase tracking-[0.3em] text-gold font-semibold">
-              The 2026 Collection — Women · Men · Children
-            </span>
-          </div>
+      {/* ── 1. HERO ─────────────────────────────────────────────────────── */}
+      <section className="relative" style={{ height: '92vh', minHeight: '620px' }}>
+        {/* Background image */}
+        <div className="absolute inset-0 overflow-hidden">
+          <Image
+            src="https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=1800&h=1200&fit=crop&q=90"
+            alt="NOVEIRA Campaign — The New Season"
+            fill
+            priority
+            sizes="100vw"
+            className="object-cover object-center"
+            style={{ transform: 'scale(1.02)' }}
+          />
+          {/* Gradient overlay — high readability */}
+          <div
+            className="absolute inset-0"
+            style={{
+              background: 'linear-gradient(to right, rgba(20,18,16,0.82) 0%, rgba(20,18,16,0.5) 60%, rgba(20,18,16,0.2) 100%)'
+            }}
+          />
+        </div>
 
-          <h1 className="font-heading text-5xl sm:text-7xl lg:text-8xl tracking-tight leading-[0.95] text-ivory max-w-5xl mx-auto animate-fade-up">
-            Elegance Designed <br className="hidden sm:block" />
-            <span className="text-gold-gradient italic font-serif">For Every Generation.</span>
-          </h1>
-
-          <p className="mt-8 max-w-2xl mx-auto text-base sm:text-lg leading-relaxed text-stone animate-fade-up delay-100">
-            Considered tailoring, pure cashmere knitwear, and floor-length evening silhouttes. Designed in house and crafted to endure.
-          </p>
-
-          {/* Hero CTAs */}
-          <div className="mt-10 flex flex-wrap items-center justify-center gap-4 animate-fade-up delay-200">
-            <Link href="/products?gender=Women" className="btn-primary">
-              <span>Shop Women</span>
-              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M14 5l7 7m0 0l-7 7m7-7H3" />
-              </svg>
-            </Link>
-            <Link href="/products?gender=Men" className="btn-outline">
-              <span>Shop Men</span>
-            </Link>
-            <Link href="/products?gender=Children" className="btn-outline">
-              <span>Shop Children</span>
-            </Link>
-          </div>
-
-          {/* Quick Stats / Highlights */}
-          <div className="mt-16 pt-12 border-t border-gold/10 grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto text-center">
-            <div>
-              <p className="font-heading text-3xl text-gold">100%</p>
-              <p className="text-[10px] uppercase tracking-[0.2em] text-stone mt-1">Ethical Italian Silk & Cashmere</p>
-            </div>
-            <div>
-              <p className="font-heading text-3xl text-gold">3 World</p>
-              <p className="text-[10px] uppercase tracking-[0.2em] text-stone mt-1">Lines: Women, Men, Kids</p>
-            </div>
-            <div>
-              <p className="font-heading text-3xl text-gold">14-Day</p>
-              <p className="text-[10px] uppercase tracking-[0.2em] text-stone mt-1">Hassle-Free Returns</p>
-            </div>
-            <div>
-              <p className="font-heading text-3xl text-gold">4.9★</p>
-              <p className="text-[10px] uppercase tracking-[0.2em] text-stone mt-1">Client Satisfaction</p>
+        {/* Hero content */}
+        <div className="relative h-full flex items-center">
+          <div className="mx-auto w-full max-w-7xl px-8 md:px-12">
+            <div className="max-w-xl">
+              <p
+                className="text-xs sm:text-sm uppercase tracking-[0.24em] font-semibold mb-5 animate-fade-in"
+                style={{ color: 'var(--color-champagne)' }}
+              >
+                The New Season — 2026
+              </p>
+              <h1
+                className="font-heading animate-fade-up delay-100"
+                style={{
+                  fontSize: 'clamp(3.25rem, 7.5vw, 6.5rem)',
+                  lineHeight: 1.02,
+                  color: '#FFFFFF',
+                  fontWeight: 400,
+                  letterSpacing: '-0.02em'
+                }}
+              >
+                Defined by<br />
+                <em style={{ fontStyle: 'italic', fontWeight: 300 }}>form.</em>{' '}
+                Designed<br />
+                for movement.
+              </h1>
+              <p
+                className="mt-6 text-base sm:text-lg leading-relaxed animate-fade-up delay-200"
+                style={{ color: '#F0ECE4', maxWidth: '34rem', fontWeight: 400 }}
+              >
+                Considered tailoring, fine knitwear, and silhouettes crafted to endure.
+                Noveira — where craft meets quiet confidence.
+              </p>
+              <div className="mt-10 flex flex-wrap items-center gap-4 animate-fade-up delay-300">
+                <Link
+                  href="/products?gender=Women"
+                  className="btn-champagne"
+                  style={{ minWidth: '180px', justifyContent: 'center' }}
+                >
+                  <span>Explore Women</span>
+                </Link>
+                <Link
+                  href="/products?gender=Men"
+                  style={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '0.625rem',
+                    padding: '0.875rem 2.25rem',
+                    minHeight: '52px',
+                    border: '2px solid rgba(255,255,255,0.7)',
+                    color: '#FFFFFF',
+                    fontSize: '0.8125rem',
+                    fontWeight: 600,
+                    letterSpacing: '0.16em',
+                    textTransform: 'uppercase',
+                    transition: 'all 0.3s ease',
+                    background: 'rgba(255,255,255,0.08)',
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.borderColor = '#FFFFFF';
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.2)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.borderColor = 'rgba(255,255,255,0.7)';
+                    e.currentTarget.style.background = 'rgba(255,255,255,0.08)';
+                  }}
+                >
+                  <span>Explore Men</span>
+                </Link>
+              </div>
             </div>
           </div>
         </div>
+
+        {/* Scroll indicator */}
+        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex flex-col items-center gap-2 animate-fade-in delay-700">
+          <span className="text-xs uppercase tracking-[0.3em] font-medium" style={{ color: 'rgba(255,255,255,0.7)' }}>
+            Scroll
+          </span>
+          <div className="h-8 w-0.5" style={{ background: 'rgba(255,255,255,0.4)' }} />
+        </div>
       </section>
 
-      {/* ── 2. Infinite Marquee Banner ─────────────────────────────────── */}
-      <div className="border-b border-gold/15 bg-surface py-3.5 overflow-hidden">
-        <div className="marquee-track flex whitespace-nowrap gap-12 text-[11px] uppercase tracking-[0.3em] text-gold font-medium animate-marquee">
-          <span>NOVEIRA ATELIER</span>
-          <span>•</span>
-          <span>WOMEN’S HAUTE COUTURE</span>
-          <span>•</span>
-          <span>MEN’S BESPOKE TAILORING</span>
-          <span>•</span>
-          <span>CHILDREN’S LUXURY WEAR</span>
-          <span>•</span>
-          <span>CRAFTED IN SMALL BATCHES</span>
-          <span>•</span>
-          <span>WORLDWIDE EXPRESS SHIPPING</span>
-          <span>•</span>
-          <span>NOVEIRA ATELIER</span>
-          <span>•</span>
-          <span>WOMEN’S HAUTE COUTURE</span>
-          <span>•</span>
-          <span>MEN’S BESPOKE TAILORING</span>
-          <span>•</span>
-          <span>CHILDREN’S LUXURY WEAR</span>
-          <span>•</span>
+      {/* ── 2. Marquee ─────────────────────────────────────────────────── */}
+      <div style={{ background: 'var(--color-bg-dark)', borderTop: '1px solid rgba(255,255,255,0.1)' }} className="py-4 overflow-hidden">
+        <div className="marquee-track flex whitespace-nowrap gap-16 text-xs uppercase tracking-[0.35em] font-medium animate-marquee"
+          style={{ color: 'var(--color-text-secondary)' }}
+        >
+          {['NOVEIRA ATELIER', '·', "WOMEN'S COLLECTION", '·', "MEN'S TAILORING", '·', "CHILDREN'S ATELIER", '·', 'CRAFTED IN SMALL BATCHES', '·', 'COMPLIMENTARY WORLDWIDE SHIPPING', '·', 'NOVEIRA ATELIER', '·', "WOMEN'S COLLECTION", '·', "MEN'S TAILORING", '·', "CHILDREN'S ATELIER", '·', 'CRAFTED IN SMALL BATCHES', '·', 'COMPLIMENTARY WORLDWIDE SHIPPING', '·'].map((item, i) => (
+            <span key={i}>{item}</span>
+          ))}
         </div>
       </div>
 
-      {/* ── 3. Collections Spotlight Grid ───────────────────────────── */}
-      <section className="py-24 px-6 max-w-7xl mx-auto">
-        <div className="text-center max-w-2xl mx-auto mb-16">
-          <span className="text-[10px] uppercase tracking-[0.3em] text-gold font-semibold">
-            Curated Lines
-          </span>
-          <h2 className="mt-3 font-heading text-4xl sm:text-5xl text-ivory">
-            Explore By Category
-          </h2>
-          <div className="w-16 h-0.5 bg-gold/40 mx-auto mt-4" />
-        </div>
+      {/* ── 3. Category Trio ────────────────────────────────────────────── */}
+      <section style={{ padding: '6.5rem 0', background: 'var(--color-bg)' }}>
+        <div className="mx-auto max-w-7xl px-6 md:px-10">
+          <div className="mb-12 text-center reveal">
+            <p className="text-xs font-semibold uppercase tracking-[0.24em] mb-3" style={{ color: 'var(--color-champagne)' }}>The Collections</p>
+            <h2 className="font-heading" style={{ fontSize: 'clamp(2.25rem, 4.5vw, 3.5rem)', fontWeight: 400, color: 'var(--color-espresso)' }}>
+              Shop by World
+            </h2>
+          </div>
 
-        <div className="grid gap-8 md:grid-cols-3">
-          {CATEGORIES.map((cat, idx) => (
-            <Link
-              key={cat.name}
-              href={cat.href}
-              className="group relative aspect-[4/5] overflow-hidden rounded-sm border border-gold/20 bg-surface flex flex-col justify-end p-8"
-            >
-              <Image
-                src={cat.image}
-                alt={cat.name}
-                fill
-                sizes="(min-width: 768px) 33vw, 100vw"
-                className="object-cover object-center transition-transform duration-700 group-hover:scale-110"
-              />
-              <div className="absolute inset-0 bg-gradient-to-t from-obsidian via-obsidian/40 to-transparent opacity-80 transition-opacity duration-300 group-hover:opacity-90" />
-              
-              <div className="relative z-10">
-                <span className="text-[10px] uppercase tracking-[0.25em] text-gold font-semibold">
-                  {cat.gender}
-                </span>
-                <h3 className="mt-1 font-heading text-3xl text-ivory group-hover:text-gold transition-colors">
-                  {cat.name}
-                </h3>
-                <p className="mt-2 text-xs text-stone leading-relaxed">
-                  {cat.subtitle}
-                </p>
-                <div className="mt-4 inline-flex items-center gap-2 text-xs uppercase tracking-[0.18em] text-gold font-semibold group-hover:translate-x-1 transition-transform">
-                  <span>Explore Line</span>
-                  <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
-                  </svg>
+          <div className="grid gap-4 md:grid-cols-3">
+            {CATEGORIES.map((cat) => (
+              <Link
+                key={cat.name}
+                href={cat.href}
+                className="group relative overflow-hidden block"
+                style={{ aspectRatio: '3/4' }}
+              >
+                <Image
+                  src={cat.image}
+                  alt={cat.name}
+                  fill
+                  sizes="(min-width: 768px) 33vw, 100vw"
+                  className="object-cover object-center transition-transform duration-[1200ms] ease-out group-hover:scale-[1.04]"
+                />
+                {/* Overlay */}
+                <div
+                  className="absolute inset-0 transition-opacity duration-500"
+                  style={{
+                    background: 'linear-gradient(to top, rgba(20,18,16,0.85) 0%, rgba(20,18,16,0.2) 55%, transparent 100%)'
+                  }}
+                />
+                {/* Content */}
+                <div className="absolute bottom-0 left-0 right-0 p-8">
+                  <p className="text-xs uppercase tracking-[0.24em] font-semibold mb-2" style={{ color: 'var(--color-champagne)' }}>
+                    {cat.subtitle}
+                  </p>
+                  <h3 className="font-heading text-4xl mb-4" style={{ color: '#FFFFFF', fontWeight: 400 }}>
+                    {cat.name}
+                  </h3>
+                  <div
+                    className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] transition-all duration-300 group-hover:gap-4"
+                    style={{ color: '#FFFFFF' }}
+                  >
+                    <span>{cat.cta}</span>
+                    <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
+                    </svg>
+                  </div>
                 </div>
-              </div>
-            </Link>
-          ))}
+              </Link>
+            ))}
+          </div>
         </div>
       </section>
 
-      {/* ── 4. Women's Spotlight ─────────────────────────────────────── */}
-      <section className="py-20 px-6 bg-surface border-y border-gold/15">
-        <div className="max-w-7xl mx-auto">
-          <div className="mb-12 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      {/* ── 4. Women's Collection ───────────────────────────────────────── */}
+      <section style={{ padding: '6.5rem 0', background: 'var(--color-bg-alt)' }}>
+        <div className="mx-auto max-w-7xl px-6 md:px-10">
+          <div className="mb-12 flex items-end justify-between reveal">
             <div>
-              <span className="text-[10px] uppercase tracking-[0.3em] text-gold font-semibold">
-                For Her
-              </span>
-              <h2 className="mt-2 font-heading text-3xl sm:text-4xl text-ivory">
-                Women's Essentials
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] mb-2" style={{ color: 'var(--color-champagne)' }}>For Her</p>
+              <h2 className="font-heading" style={{ fontSize: 'clamp(2rem, 4vw, 3.25rem)', fontWeight: 400, color: 'var(--color-espresso)' }}>
+                Women&apos;s Collection
               </h2>
             </div>
             <Link
               href="/products?gender=Women"
-              className="text-xs uppercase tracking-[0.2em] text-gold hover:text-gold-light transition-colors flex items-center gap-2"
+              className="hidden sm:inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] transition-opacity hover:opacity-60"
+              style={{ color: 'var(--color-espresso)' }}
             >
-              <span>View All Women</span>
-              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              View All
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
               </svg>
             </Link>
           </div>
 
           <div className="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-4">
             {womenProducts.map((p, i) => (
-              <ProductCard key={p.id} product={p} priority={i < 2} />
+              <div key={p.id} className="reveal" style={{ animationDelay: `${i * 0.08}s` }}>
+                <ProductCard product={p} priority={i < 2} />
+              </div>
             ))}
+          </div>
+
+          <div className="mt-10 text-center sm:hidden">
+            <Link href="/products?gender=Women" className="btn-outline">
+              <span>View All Women</span>
+            </Link>
           </div>
         </div>
       </section>
 
-      {/* ── 5. Men's Spotlight ───────────────────────────────────────── */}
-      <section className="py-20 px-6 border-b border-gold/15">
-        <div className="max-w-7xl mx-auto">
-          <div className="mb-12 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      {/* ── 5. Editorial Feature ────────────────────────────────────────── */}
+      {EDITORIALS.map((ed, idx) => (
+        <section
+          key={ed.title}
+          style={{ background: idx % 2 === 0 ? 'var(--color-bg)' : 'var(--color-bg-warm)' }}
+        >
+          <div className={`mx-auto max-w-7xl flex flex-col ${ed.align === 'right' ? 'md:flex-row-reverse' : 'md:flex-row'} items-stretch`}>
+            {/* Image */}
+            <div className="md:w-1/2 relative overflow-hidden" style={{ minHeight: '580px' }}>
+              <Image
+                src={ed.image}
+                alt={ed.title}
+                fill
+                sizes="(min-width: 768px) 50vw, 100vw"
+                className="object-cover object-center transition-transform duration-[1400ms] group-hover:scale-[1.03]"
+              />
+            </div>
+            {/* Text */}
+            <div className="md:w-1/2 flex items-center px-8 py-16 md:px-16 md:py-24">
+              <div className="max-w-md reveal">
+                <p className="text-xs font-semibold uppercase tracking-[0.24em] mb-4" style={{ color: 'var(--color-champagne)' }}>{ed.tag}</p>
+                <h2 className="font-heading mb-6" style={{ fontSize: 'clamp(2.25rem, 4vw, 3.5rem)', fontWeight: 400, color: 'var(--color-espresso)' }}>
+                  {ed.title}
+                </h2>
+                <p className="text-base leading-relaxed mb-10" style={{ color: 'var(--color-charcoal)', fontWeight: 400 }}>
+                  {ed.subtitle}
+                </p>
+                <Link href={ed.href} className="btn-outline">
+                  <span>Discover More</span>
+                </Link>
+              </div>
+            </div>
+          </div>
+        </section>
+      ))}
+
+      {/* ── 6. Men's Collection ─────────────────────────────────────────── */}
+      <section style={{ padding: '6.5rem 0', background: 'var(--color-bg-alt)' }}>
+        <div className="mx-auto max-w-7xl px-6 md:px-10">
+          <div className="mb-12 flex items-end justify-between reveal">
             <div>
-              <span className="text-[10px] uppercase tracking-[0.3em] text-gold font-semibold">
-                For Him
-              </span>
-              <h2 className="mt-2 font-heading text-3xl sm:text-4xl text-ivory">
-                Men's Tailoring & Knitwear
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] mb-2" style={{ color: 'var(--color-champagne)' }}>For Him</p>
+              <h2 className="font-heading" style={{ fontSize: 'clamp(2rem, 4vw, 3.25rem)', fontWeight: 400, color: 'var(--color-espresso)' }}>
+                Men&apos;s Collection
               </h2>
             </div>
             <Link
               href="/products?gender=Men"
-              className="text-xs uppercase tracking-[0.2em] text-gold hover:text-gold-light transition-colors flex items-center gap-2"
+              className="hidden sm:inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] transition-opacity hover:opacity-60"
+              style={{ color: 'var(--color-espresso)' }}
             >
-              <span>View All Men</span>
-              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              View All
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
               </svg>
             </Link>
           </div>
-
           <div className="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-4">
-            {menProducts.map((p) => (
-              <ProductCard key={p.id} product={p} />
+            {menProducts.map((p, i) => (
+              <div key={p.id} className="reveal" style={{ animationDelay: `${i * 0.08}s` }}>
+                <ProductCard product={p} />
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── 6. Children's Spotlight ──────────────────────────────────── */}
-      <section className="py-20 px-6 bg-surface border-b border-gold/15">
-        <div className="max-w-7xl mx-auto">
-          <div className="mb-12 flex flex-col sm:flex-row sm:items-end justify-between gap-4">
+      {/* ── 7. Children's Collection ────────────────────────────────────── */}
+      <section style={{ padding: '6.5rem 0', background: 'var(--color-bg)' }}>
+        <div className="mx-auto max-w-7xl px-6 md:px-10">
+          <div className="mb-12 flex items-end justify-between reveal">
             <div>
-              <span className="text-[10px] uppercase tracking-[0.3em] text-gold font-semibold">
-                For Little Ones
-              </span>
-              <h2 className="mt-2 font-heading text-3xl sm:text-4xl text-ivory">
-                Children's Collection
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] mb-2" style={{ color: 'var(--color-champagne)' }}>For Little Ones</p>
+              <h2 className="font-heading" style={{ fontSize: 'clamp(2rem, 4vw, 3.25rem)', fontWeight: 400, color: 'var(--color-espresso)' }}>
+                Children&apos;s Atelier
               </h2>
             </div>
             <Link
               href="/products?gender=Children"
-              className="text-xs uppercase tracking-[0.2em] text-gold hover:text-gold-light transition-colors flex items-center gap-2"
+              className="hidden sm:inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.2em] transition-opacity hover:opacity-60"
+              style={{ color: 'var(--color-espresso)' }}
             >
-              <span>View All Children</span>
-              <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              View All
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17 8l4 4m0 0l-4 4m4-4H3" />
               </svg>
             </Link>
           </div>
-
           <div className="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-4">
-            {childrenProducts.map((p) => (
-              <ProductCard key={p.id} product={p} />
+            {childrenProducts.map((p, i) => (
+              <div key={p.id} className="reveal" style={{ animationDelay: `${i * 0.08}s` }}>
+                <ProductCard product={p} />
+              </div>
             ))}
           </div>
         </div>
       </section>
 
-      {/* ── 7. Sale / Archive Banner ─────────────────────────────────── */}
-      {saleProducts.length > 0 && (
-        <section className="py-20 px-6 border-b border-gold/15">
-          <div className="max-w-7xl mx-auto">
-            <div className="mb-12 flex items-end justify-between">
-              <div>
-                <span className="text-[10px] uppercase tracking-[0.3em] text-gold font-semibold">Limited Access</span>
-                <h2 className="mt-2 font-heading text-3xl sm:text-4xl text-ivory">Archive & Sale</h2>
-              </div>
-              <Link href="/products?sale=true" className="text-xs uppercase tracking-[0.2em] text-gold hover:text-gold-light transition-colors">
-                View All Sale &rarr;
-              </Link>
-            </div>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-10 md:grid-cols-4">
-              {saleProducts.map((p) => (
-                <ProductCard key={p.id} product={p} badge="Sale" />
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/* ── 8. Heritage / Brand Story Banner ─────────────────────────── */}
-      <section className="relative py-28 px-6 bg-void grain border-b border-gold/15 overflow-hidden">
-        <div className="max-w-5xl mx-auto text-center relative z-10">
-          <span className="text-[10px] uppercase tracking-[0.35em] text-gold font-semibold">
-            The Philosophy
-          </span>
-          <h2 className="mt-4 font-heading text-4xl sm:text-6xl text-ivory leading-tight">
-            "Clothing should be built like architecture — <br className="hidden sm:block" />
-            <span className="text-gold-gradient italic">structured, refined, and made to last."</span>
+      {/* ── 8. Brand Story / Philosophy ─────────────────────────────────── */}
+      <section className="relative overflow-hidden grain" style={{ background: 'var(--color-bg-dark)' }}>
+        <div
+          className="absolute inset-0 opacity-25"
+          style={{
+            backgroundImage: `url("https://images.unsplash.com/photo-1558769132-cb1aea458c5e?w=1200&h=800&fit=crop&q=60")`,
+            backgroundSize: 'cover',
+            backgroundPosition: 'center',
+            filter: 'grayscale(50%)'
+          }}
+        />
+        <div className="relative mx-auto max-w-4xl px-8 py-36 text-center">
+          <p className="text-xs uppercase tracking-[0.3em] font-semibold mb-6 reveal" style={{ color: 'var(--color-champagne)' }}>The Philosophy</p>
+          <h2
+            className="font-heading reveal delay-100"
+            style={{
+              fontSize: 'clamp(2.5rem, 5.5vw, 4.5rem)',
+              color: '#FFFFFF',
+              fontWeight: 400,
+              lineHeight: 1.15,
+              fontStyle: 'italic'
+            }}
+          >
+            &ldquo;Garments should be structured like architecture — refined, pure, and made to endure generations.&rdquo;
           </h2>
-          <p className="mt-6 text-sm sm:text-base text-stone max-w-2xl mx-auto leading-relaxed">
-            At Noveira, every seam is considered. We source our cashmere from Mongolia, our silks from Como, and our wools from Biella. We craft in limited runs so that every piece maintains its standard of perfection.
+          <p
+            className="mt-8 text-base sm:text-lg leading-relaxed max-w-2xl mx-auto reveal delay-200"
+            style={{ color: 'var(--color-text-secondary)' }}
+          >
+            At Noveira, every seam is considered. We source cashmere from Mongolia, silk from Como, and wool from Biella.
+            We craft in limited runs so that every piece maintains its standard of perfection.
           </p>
-          <div className="mt-10">
-            <Link href="/products" className="btn-primary">
+          <div className="mt-12 reveal delay-300">
+            <Link href="/products" className="btn-champagne">
               <span>Explore The Full Collection</span>
             </Link>
           </div>
         </div>
       </section>
 
-      {/* ── 9. Perks / Atelier Standards ───────────────────────────── */}
-      <section className="py-24 px-6 max-w-7xl mx-auto">
-        <div className="grid gap-10 sm:grid-cols-2 lg:grid-cols-4">
-          {PERKS.map(({ icon, label, body }) => (
-            <div key={label} className="p-6 rounded-sm bg-surface/50 border border-gold/10 hover:border-gold/30 transition-all duration-300">
-              <div className="mb-4 inline-flex p-3 rounded-full bg-gold/10">
-                {icon}
+      {/* ── 9. Atelier Pillars ──────────────────────────────────────────── */}
+      <section style={{ padding: '6.5rem 0', background: 'var(--color-bg-alt)' }}>
+        <div className="mx-auto max-w-7xl px-6 md:px-10">
+          <div className="grid gap-0 md:grid-cols-4" style={{ borderTop: '1.5px solid var(--color-parchment)' }}>
+            {[
+              {
+                number: '01',
+                label: 'Master Craftsmanship',
+                body: 'Hand-finished garments woven from ethically sourced Italian silk, cashmere, and superfine wool.'
+              },
+              {
+                number: '02',
+                label: 'Complimentary Delivery',
+                body: 'Free shipping across Pakistan on all orders above Rs. 5,000, delivered with extreme care.'
+              },
+              {
+                number: '03',
+                label: 'Bespoke Concierge',
+                body: 'Personal styling assistance, size guidance, and custom alterations for your perfect fit.'
+              },
+              {
+                number: '04',
+                label: 'Seamless Returns',
+                body: 'Stress-free 14-day returns and exchanges with full order tracking and dedicated support.'
+              }
+            ].map((perk, idx) => (
+              <div
+                key={perk.label}
+                className="py-12 pr-8 reveal"
+                style={{
+                  borderRight: idx < 3 ? '1.5px solid var(--color-parchment)' : 'none',
+                  paddingLeft: idx === 0 ? 0 : '2rem',
+                  animationDelay: `${idx * 0.1}s`
+                }}
+              >
+                <span className="font-heading text-5xl" style={{ color: 'var(--color-champagne)', fontWeight: 400 }}>
+                  {perk.number}
+                </span>
+                <h3 className="mt-5 font-heading text-2xl" style={{ fontWeight: 500, color: 'var(--color-espresso)' }}>
+                  {perk.label}
+                </h3>
+                <p className="mt-3 text-base leading-relaxed" style={{ color: 'var(--color-charcoal)' }}>
+                  {perk.body}
+                </p>
               </div>
-              <h3 className="font-heading text-xl text-ivory">{label}</h3>
-              <p className="mt-2 text-xs text-stone leading-relaxed">{body}</p>
-            </div>
-          ))}
+            ))}
+          </div>
         </div>
       </section>
+
+      {/* ── 10. Newsletter ──────────────────────────────────────────────── */}
+      <section style={{ padding: '7.5rem 0', background: 'var(--color-bg-warm)' }}>
+        <div className="mx-auto max-w-xl px-6 text-center reveal">
+          <p className="text-xs uppercase tracking-[0.24em] font-semibold mb-4" style={{ color: 'var(--color-champagne)' }}>Private List</p>
+          <h2 className="font-heading mb-5" style={{ fontSize: 'clamp(2.25rem, 4.5vw, 3.5rem)', fontWeight: 400, color: 'var(--color-espresso)' }}>
+            Be The First to Know
+          </h2>
+          <p className="text-base leading-relaxed mb-10" style={{ color: 'var(--color-charcoal)' }}>
+            Receive early access to new collections, private events, and seasonal lookbooks.
+          </p>
+          <form
+            className="flex flex-col sm:flex-row gap-2 max-w-md mx-auto"
+            onSubmit={(e) => e.preventDefault()}
+          >
+            <input
+              type="email"
+              required
+              placeholder="Enter your email address"
+              className="input-light flex-1"
+            />
+            <button
+              type="submit"
+              className="btn-primary"
+              style={{ padding: '0.875rem 2rem', whiteSpace: 'nowrap' }}
+            >
+              <span>Join List</span>
+            </button>
+          </form>
+          <p className="mt-4 text-xs uppercase tracking-[0.16em]" style={{ color: 'var(--color-taupe)' }}>
+            Unsubscribe anytime. Zero spam, ever.
+          </p>
+        </div>
+      </section>
+
     </main>
   );
 }

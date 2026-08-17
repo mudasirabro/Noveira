@@ -34,26 +34,30 @@ interface Customer {
   lastOrder: string;
 }
 
-const thClass =
-  'px-4 py-3 text-left text-[10px] font-semibold uppercase tracking-[0.18em] text-gold';
-const tdClass = 'px-4 py-3 text-xs text-ivory';
+const S = {
+  bg: 'var(--color-admin-bg)',
+  surf: 'var(--color-admin-surf)',
+  elev: 'var(--color-admin-elev)',
+  border: 'var(--color-admin-border)',
+  primary: 'var(--color-text-primary)',
+  secondary: 'var(--color-text-secondary)',
+  muted: 'var(--color-text-muted)',
+  champ: 'var(--color-champagne)',
+};
 
-function statusClass(status: OrderStatus): string {
+function statusBadgeClass(status: OrderStatus): string {
   switch (status) {
-    case 'Delivered':
-      return 'border-gold bg-gold text-obsidian font-bold';
-    case 'Cancelled':
-      return 'border-stone/40 bg-surface text-stone';
-    case 'Pending':
-      return 'border-gold/50 bg-gold/20 text-gold';
-    default:
-      return 'border-gold/30 bg-muted text-ivory';
+    case 'Pending':    return 'badge-pending';
+    case 'Processing': return 'badge-processing';
+    case 'Shipped':    return 'badge-shipped';
+    case 'Delivered':  return 'badge-delivered';
+    case 'Cancelled':  return 'badge-cancelled';
+    default:           return 'badge-pending';
   }
 }
 
 function AdminDashboard() {
   const router = useRouter();
-
   const [tab, setTab] = useState<Tab>('overview');
   const [orders, setOrders] = useState<StoredOrder[]>([]);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -74,127 +78,123 @@ function AdminDashboard() {
 
   const handleStatusChange = useCallback((id: string, status: OrderStatus) => {
     setOrders(sortByNewest(setOrderStatus(id, status)));
-    setNotice(`Order ${id} marked ${status.toLowerCase()}.`);
+    setNotice(`Order ${id} updated to ${status}.`);
   }, []);
 
   useEffect(() => {
     if (!notice) return;
-    const timer = window.setTimeout(() => setNotice(''), 3000);
-    return () => window.clearTimeout(timer);
+    const t = window.setTimeout(() => setNotice(''), 3500);
+    return () => window.clearTimeout(t);
   }, [notice]);
 
   const selectedOrder = useMemo(
-    () => orders.find((order) => order.id === selectedId) ?? null,
+    () => orders.find((o) => o.id === selectedId) ?? null,
     [orders, selectedId]
   );
 
   useEffect(() => {
     if (!selectedOrder) return;
-    const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setSelectedId(null);
-    };
-    document.addEventListener('keydown', onKeyDown);
-    return () => document.removeEventListener('keydown', onKeyDown);
+    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setSelectedId(null); };
+    document.addEventListener('keydown', onKey);
+    return () => document.removeEventListener('keydown', onKey);
   }, [selectedOrder]);
 
   const customers = useMemo(() => {
-    const byEmail = new Map<string, Customer>();
-
-    for (const order of orders) {
-      const existing = byEmail.get(order.email);
-      if (existing) {
-        existing.orders += 1;
-        existing.totalSpent += order.total;
-        if (new Date(order.placedAt) > new Date(existing.lastOrder)) {
-          existing.lastOrder = order.placedAt;
-        }
+    const map = new Map<string, Customer>();
+    for (const o of orders) {
+      const ex = map.get(o.email);
+      if (ex) {
+        ex.orders += 1;
+        ex.totalSpent += o.total;
+        if (new Date(o.placedAt) > new Date(ex.lastOrder)) ex.lastOrder = o.placedAt;
       } else {
-        byEmail.set(order.email, {
-          email: order.email,
-          name: order.customer,
-          phone: order.phone,
-          orders: 1,
-          totalSpent: order.total,
-          lastOrder: order.placedAt,
-        });
+        map.set(o.email, { email: o.email, name: o.customer, phone: o.phone, orders: 1, totalSpent: o.total, lastOrder: o.placedAt });
       }
     }
-
-    return [...byEmail.values()].sort((a, b) => b.totalSpent - a.totalSpent);
+    return [...map.values()].sort((a, b) => b.totalSpent - a.totalSpent);
   }, [orders]);
 
-  const revenue = useMemo(
-    () =>
-      orders
-        .filter((order) => order.status !== 'Cancelled')
-        .reduce((sum, order) => sum + order.total, 0),
+  const revenue = useMemo(() =>
+    orders.filter((o) => o.status !== 'Cancelled').reduce((s, o) => s + o.total, 0),
     [orders]
   );
-
-  const pendingCount = orders.filter((order) => order.status === 'Pending').length;
-  const lowStock = products.filter((p) => p.stock > 0 && p.stock <= 5).length;
-  const soldOut = products.filter((p) => p.stock === 0).length;
+  const pendingCount = orders.filter((o) => o.status === 'Pending').length;
+  const lowStock     = products.filter((p) => p.stock > 0 && p.stock <= 5).length;
+  const soldOut      = products.filter((p) => p.stock === 0).length;
 
   const stats = [
-    { label: 'Orders', value: String(orders.length) },
-    { label: 'Pending', value: String(pendingCount) },
-    { label: 'Revenue', value: formatPrice(revenue) },
-    { label: 'Customers', value: String(customers.length) },
-    { label: 'Total Items', value: String(products.length) },
-    { label: 'Low Stock', value: String(lowStock) },
-    { label: 'Sold Out', value: String(soldOut) },
+    { label: 'Total Orders',    value: String(orders.length),   accent: false },
+    { label: 'Pending',         value: String(pendingCount),    accent: pendingCount > 0 },
+    { label: 'Revenue',         value: formatPrice(revenue),    accent: true },
+    { label: 'Customers',       value: String(customers.length), accent: false },
+    { label: 'Catalog Items',   value: String(products.length), accent: false },
+    { label: 'Low Stock',       value: String(lowStock),        accent: lowStock > 0 },
+    { label: 'Sold Out',        value: String(soldOut),         accent: soldOut > 0 },
   ];
 
   if (!hydrated) {
     return (
-      <main className="flex min-h-screen items-center justify-center bg-obsidian text-stone">
-        <p className="text-[11px] uppercase tracking-[0.2em]">Loading dashboard...</p>
+      <main className="flex min-h-screen items-center justify-center" style={{ background: S.bg }}>
+        <div className="text-center">
+          <div className="inline-block h-8 w-8 border-2 border-t-transparent border-b-transparent rounded-full animate-spin-slow" style={{ borderColor: S.champ, borderTopColor: 'transparent' }} />
+          <p className="mt-4 text-label-dark">Loading Dashboard...</p>
+        </div>
       </main>
     );
   }
 
   return (
-    <main className="min-h-screen bg-obsidian text-ivory">
-      <div className="mx-auto max-w-7xl px-6 py-12">
-        <header className="flex flex-wrap items-end justify-between gap-5 border-b border-gold/15 pb-7">
+    <main style={{ background: S.bg, minHeight: '100vh', color: S.primary }}>
+      <div className="mx-auto max-w-7xl px-6 py-10 md:px-10">
+
+        {/* Header */}
+        <header className="flex flex-wrap items-center justify-between gap-6 pb-8" style={{ borderBottom: `1px solid ${S.border}` }}>
           <div>
-            <p className="font-heading text-2xl tracking-[0.3em] text-gold">NOVEIRA</p>
-            <h1 className="mt-2 font-heading text-3xl sm:text-4xl text-ivory">Atelier Dashboard</h1>
-            <p className="mt-1.5 text-xs text-stone">
-              Logged in as <span className="text-gold">{adminEmail ?? 'admin'}</span>
+            <p className="font-heading tracking-[0.3em]" style={{ fontSize: '1.25rem', color: S.champ, fontWeight: 400 }}>NOVEIRA</p>
+            <h1 className="font-heading mt-1" style={{ fontSize: 'clamp(1.75rem, 3vw, 2.5rem)', color: S.primary, fontWeight: 400 }}>Atelier Dashboard</h1>
+            <p className="mt-1.5" style={{ fontSize: '0.9rem', color: S.muted }}>
+              Signed in as <span style={{ color: S.champ }}>{adminEmail ?? 'admin'}</span>
             </p>
           </div>
-
-          <div className="flex flex-wrap gap-3">
-            <Link href="/" className="btn-outline">
-              <span>View Store</span>
+          <div className="flex gap-3">
+            <Link href="/" className="btn-admin-outline">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" /></svg>
+              View Store
             </Link>
-            <button
-              type="button"
-              onClick={handleLogout}
-              className="btn-primary"
-            >
-              <span>Sign Out</span>
+            <button type="button" onClick={handleLogout} className="btn-admin-primary">
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1" /></svg>
+              Sign Out
             </button>
           </div>
         </header>
 
+        {/* Notice */}
         {notice && (
-          <p aria-live="polite" className="mt-4 text-xs text-gold animate-fade-in font-medium">
-            ✓ {notice}
-          </p>
+          <div className="mt-5 flex items-center gap-2.5 px-4 py-3 animate-fade-in" style={{ background: 'rgba(80,200,100,0.12)', border: '1px solid rgba(80,200,100,0.3)' }}>
+            <svg className="h-4 w-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: '#60C870' }}><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" /></svg>
+            <p style={{ fontSize: '0.9rem', color: '#60C870' }}>{notice}</p>
+          </div>
         )}
 
-        <div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7">
+        {/* Stats grid */}
+        <div className="mt-8 grid grid-cols-2 gap-3 md:grid-cols-4 lg:grid-cols-7">
           {stats.map((stat) => (
-            <div key={stat.label} className="bg-surface border border-gold/15 p-4 rounded-sm">
-              <p className="text-[9px] uppercase tracking-[0.18em] text-stone">{stat.label}</p>
-              <p className="mt-2 font-heading text-2xl text-gold">{stat.value}</p>
+            <div
+              key={stat.label}
+              className="p-5"
+              style={{
+                background: S.surf,
+                border: `1px solid ${stat.accent ? 'rgba(196,163,90,0.3)' : S.border}`,
+              }}
+            >
+              <p style={{ fontSize: '0.7rem', fontWeight: 600, letterSpacing: '0.16em', textTransform: 'uppercase', color: S.muted }}>{stat.label}</p>
+              <p className="font-heading mt-2.5" style={{ fontSize: '1.6rem', fontWeight: 400, color: stat.accent ? S.champ : S.primary }}>{stat.value}</p>
             </div>
           ))}
         </div>
 
-        <nav className="mt-10 flex flex-wrap gap-x-8 gap-y-3 border-b border-gold/15">
+        {/* Tabs */}
+        <nav className="mt-10 flex flex-wrap gap-x-0 gap-y-2" style={{ borderBottom: `1px solid ${S.border}` }}>
           {TABS.map((item) => {
             const active = tab === item.id;
             return (
@@ -203,11 +203,19 @@ function AdminDashboard() {
                 type="button"
                 onClick={() => setTab(item.id)}
                 aria-current={active}
-                className={`-mb-px border-b-2 pb-3 text-xs uppercase tracking-[0.18em] transition-colors ${
-                  active
-                    ? 'border-gold text-gold font-bold'
-                    : 'border-transparent text-stone hover:text-ivory'
-                }`}
+                style={{
+                  padding: '0.75rem 1.5rem',
+                  fontSize: '0.875rem',
+                  fontWeight: active ? 600 : 400,
+                  letterSpacing: '0.08em',
+                  textTransform: 'uppercase',
+                  color: active ? S.champ : S.secondary,
+                  borderBottom: active ? `2px solid ${S.champ}` : '2px solid transparent',
+                  marginBottom: '-1px',
+                  transition: 'all 0.2s',
+                  background: 'none',
+                  cursor: 'pointer',
+                }}
               >
                 {item.label}
               </button>
@@ -215,31 +223,32 @@ function AdminDashboard() {
           })}
         </nav>
 
-        <div className="mt-8">
+        {/* Tab content */}
+        <div className="mt-8 pb-24">
           {tab === 'overview' && (
             <OrdersTable
               orders={orders.slice(0, 5)}
               onSelect={setSelectedId}
               onStatusChange={handleStatusChange}
               emptyMessage="No orders placed yet."
+              heading="Recent Orders"
             />
           )}
-
           {tab === 'orders' && (
             <OrdersTable
               orders={orders}
               onSelect={setSelectedId}
               onStatusChange={handleStatusChange}
               emptyMessage="No orders found."
+              heading={`All Orders (${orders.length})`}
             />
           )}
-
           {tab === 'catalogue' && <CatalogueTable />}
-
           {tab === 'customers' && <CustomersTable customers={customers} />}
         </div>
       </div>
 
+      {/* Order modal */}
       {selectedOrder && (
         <OrderModal order={selectedOrder} onClose={() => setSelectedId(null)} />
       )}
@@ -247,131 +256,129 @@ function AdminDashboard() {
   );
 }
 
+/* ─── Orders Table ─────────────────────────────────────────────────── */
 function OrdersTable({
-  orders,
-  onSelect,
-  onStatusChange,
-  emptyMessage,
+  orders, onSelect, onStatusChange, emptyMessage, heading,
 }: {
   orders: StoredOrder[];
   onSelect: (id: string) => void;
   onStatusChange: (id: string, status: OrderStatus) => void;
   emptyMessage: string;
+  heading: string;
 }) {
-  if (orders.length === 0) {
-    return (
-      <div className="border border-gold/15 bg-surface py-16 text-center rounded-sm">
-        <p className="text-xs text-stone">{emptyMessage}</p>
-      </div>
-    );
-  }
+  const S = { border: 'var(--color-admin-border)', surf: 'var(--color-admin-surf)', elev: 'var(--color-admin-elev)', primary: 'var(--color-text-primary)', secondary: 'var(--color-text-secondary)', muted: 'var(--color-text-muted)', champ: 'var(--color-champagne)' };
 
   return (
-    <div className="overflow-x-auto border border-gold/15 bg-surface rounded-sm">
-      <table className="w-full border-collapse">
-        <thead>
-          <tr className="border-b border-gold/15 bg-muted">
-            <th className={thClass}>Reference</th>
-            <th className={thClass}>Customer</th>
-            <th className={thClass}>Placed</th>
-            <th className={thClass}>Total</th>
-            <th className={thClass}>Status</th>
-            <th className={thClass}>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          {orders.map((order) => (
-            <tr key={order.id} className="border-b border-gold/10 last:border-b-0 hover:bg-muted/40 transition-colors">
-              <td className={`${tdClass} whitespace-nowrap font-mono text-gold`}>{order.id}</td>
-              <td className={tdClass}>
-                <span className="block font-medium text-ivory">{order.customer}</span>
-                <span className="mt-0.5 block text-[11px] text-stone">{order.email}</span>
-              </td>
-              <td className={`${tdClass} whitespace-nowrap text-stone`}>
-                {formatOrderDate(order.placedAt)}
-              </td>
-              <td className={`${tdClass} whitespace-nowrap font-semibold text-gold`}>{formatPrice(order.total)}</td>
-              <td className={tdClass}>
-                <select
-                  value={order.status}
-                  onChange={(e) => onStatusChange(order.id, e.target.value as OrderStatus)}
-                  className={`border px-2.5 py-1 text-xs rounded-sm focus:outline-none ${statusClass(order.status)}`}
+    <div>
+      <h2 className="font-heading mb-5" style={{ fontSize: '1.35rem', color: S.primary, fontWeight: 400 }}>{heading}</h2>
+      {orders.length === 0 ? (
+        <div className="py-20 text-center" style={{ background: S.surf, border: `1px solid ${S.border}` }}>
+          <p style={{ fontSize: '0.9375rem', color: S.muted }}>{emptyMessage}</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto" style={{ background: S.surf, border: `1px solid ${S.border}` }}>
+          <table className="w-full border-collapse">
+            <thead>
+              <tr style={{ borderBottom: `1px solid ${S.border}`, background: 'var(--color-admin-elev)' }}>
+                {['Order Ref', 'Customer', 'Date', 'Total', 'Status', 'Actions'].map((h) => (
+                  <th key={h} className="admin-th">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {orders.map((order) => (
+                <tr
+                  key={order.id}
+                  style={{ borderBottom: `1px solid ${S.border}`, transition: 'background 0.15s' }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = 'var(--color-admin-elev)'; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = 'transparent'; }}
                 >
-                  {ORDER_STATUSES.map((status) => (
-                    <option key={status} value={status} className="bg-surface text-ivory">
-                      {status}
-                    </option>
-                  ))}
-                </select>
-              </td>
-              <td className={tdClass}>
-                <button
-                  type="button"
-                  onClick={() => onSelect(order.id)}
-                  className="text-[10px] uppercase tracking-[0.16em] text-gold hover:text-gold-light transition-colors underline decoration-gold/30 underline-offset-4"
-                >
-                  Details
-                </button>
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
+                  <td className="admin-td">
+                    <span className="font-mono text-sm" style={{ color: S.champ, fontWeight: 500 }}>{order.id}</span>
+                  </td>
+                  <td className="admin-td">
+                    <span className="block font-medium" style={{ color: S.primary }}>{order.customer}</span>
+                    <span className="mt-0.5 block text-sm" style={{ color: S.muted }}>{order.email}</span>
+                  </td>
+                  <td className="admin-td" style={{ color: S.secondary, whiteSpace: 'nowrap' }}>
+                    {formatOrderDate(order.placedAt)}
+                  </td>
+                  <td className="admin-td" style={{ fontWeight: 600, color: S.champ, whiteSpace: 'nowrap' }}>
+                    {formatPrice(order.total)}
+                  </td>
+                  <td className="admin-td">
+                    <select
+                      value={order.status}
+                      onChange={(e) => onStatusChange(order.id, e.target.value as OrderStatus)}
+                      className={`px-3 py-1.5 text-sm rounded-sm cursor-pointer focus:outline-none ${statusBadgeClass(order.status)}`}
+                      style={{ background: 'transparent', fontWeight: 500 }}
+                    >
+                      {ORDER_STATUSES.map((s) => (
+                        <option key={s} value={s} style={{ background: 'var(--color-admin-elev)', color: 'var(--color-text-primary)' }}>{s}</option>
+                      ))}
+                    </select>
+                  </td>
+                  <td className="admin-td">
+                    <button
+                      type="button"
+                      onClick={() => onSelect(order.id)}
+                      style={{ fontSize: '0.8125rem', fontWeight: 500, color: S.champ, letterSpacing: '0.08em', textDecoration: 'underline', textDecorationColor: 'rgba(196,163,90,0.4)', textUnderlineOffset: '3px', textTransform: 'uppercase', background: 'none', border: 'none', cursor: 'pointer', transition: 'opacity 0.2s' }}
+                      onMouseEnter={(e) => { e.currentTarget.style.opacity = '0.6'; }}
+                      onMouseLeave={(e) => { e.currentTarget.style.opacity = '1'; }}
+                    >
+                      Details
+                    </button>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
     </div>
   );
 }
 
+/* ─── Catalogue Table ──────────────────────────────────────────────── */
 function CatalogueTable() {
-  return (
-    <>
-      <p className="mb-4 border border-gold/15 bg-muted px-4 py-3 text-xs text-stone rounded-sm">
-        Catalog is statically structured in <code className="text-gold">src/data/products.ts</code> for Women, Men, and Children lines.
-      </p>
+  const S = { border: 'var(--color-admin-border)', surf: 'var(--color-admin-surf)', elev: 'var(--color-admin-elev)', primary: 'var(--color-text-primary)', secondary: 'var(--color-text-secondary)', muted: 'var(--color-text-muted)', champ: 'var(--color-champagne)' };
 
-      <div className="overflow-x-auto border border-gold/15 bg-surface rounded-sm">
+  return (
+    <div>
+      <h2 className="font-heading mb-2" style={{ fontSize: '1.35rem', color: S.primary, fontWeight: 400 }}>Product Catalogue</h2>
+      <p className="mb-5 text-sm" style={{ color: S.muted }}>
+        Catalog is statically defined in <code style={{ color: S.champ, fontFamily: 'monospace' }}>src/data/products.ts</code>. Edit that file to modify the catalog.
+      </p>
+      <div className="overflow-x-auto" style={{ background: S.surf, border: `1px solid ${S.border}` }}>
         <table className="w-full border-collapse">
           <thead>
-            <tr className="border-b border-gold/15 bg-muted">
-              <th className={thClass}>ID</th>
-              <th className={thClass}>Garment</th>
-              <th className={thClass}>Gender</th>
-              <th className={thClass}>Category</th>
-              <th className={thClass}>Price</th>
-              <th className={thClass}>Sale</th>
-              <th className={thClass}>Stock</th>
-              <th className={thClass}>Status</th>
+            <tr style={{ borderBottom: `1px solid ${S.border}`, background: S.elev }}>
+              {['ID', 'Garment', 'Gender', 'Category', 'Price', 'Sale Price', 'Stock', 'Status'].map((h) => (
+                <th key={h} className="admin-th">{h}</th>
+              ))}
             </tr>
           </thead>
           <tbody>
             {products.map((product) => {
-              const status =
-                product.stock === 0
-                  ? 'Sold out'
-                  : product.stock <= 5
-                  ? 'Low stock'
-                  : 'In stock';
+              const stockStatus = product.stock === 0 ? 'soldout' : product.stock <= 5 ? 'lowstock' : 'instock';
+              const stockLabel  = product.stock === 0 ? 'Sold Out' : product.stock <= 5 ? 'Low Stock' : 'In Stock';
               return (
-                <tr key={product.id} className="border-b border-gold/10 last:border-b-0 hover:bg-muted/40 transition-colors">
-                  <td className={`${tdClass} text-stone`}>{product.id}</td>
-                  <td className={`${tdClass} font-heading text-sm text-ivory`}>{product.name}</td>
-                  <td className={`${tdClass} text-gold font-semibold`}>{product.gender}</td>
-                  <td className={`${tdClass} text-stone`}>{product.category}</td>
-                  <td className={`${tdClass} whitespace-nowrap text-ivory`}>{product.price}</td>
-                  <td className={`${tdClass} whitespace-nowrap text-gold`}>
-                    {product.salePrice ?? '—'}
-                  </td>
-                  <td className={tdClass}>{product.stock}</td>
-                  <td className={tdClass}>
-                    <span
-                      className={`inline-block border px-2.5 py-1 text-[9px] font-bold uppercase tracking-[0.12em] rounded-sm ${
-                        product.stock === 0
-                          ? 'border-stone/40 bg-surface text-stone'
-                          : product.stock <= 5
-                          ? 'border-gold/50 bg-gold/20 text-gold'
-                          : 'border-gold/30 bg-muted text-ivory'
-                      }`}
-                    >
-                      {status}
+                <tr
+                  key={product.id}
+                  style={{ borderBottom: `1px solid ${S.border}`, transition: 'background 0.15s' }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = S.elev; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = 'transparent'; }}
+                >
+                  <td className="admin-td" style={{ color: S.muted }}>{product.id}</td>
+                  <td className="admin-td font-heading" style={{ color: S.primary, fontWeight: 500, fontSize: '0.9375rem' }}>{product.name}</td>
+                  <td className="admin-td" style={{ color: S.champ, fontWeight: 500 }}>{product.gender}</td>
+                  <td className="admin-td" style={{ color: S.secondary }}>{product.category}</td>
+                  <td className="admin-td" style={{ color: S.primary, whiteSpace: 'nowrap' }}>{product.price}</td>
+                  <td className="admin-td" style={{ color: S.champ, whiteSpace: 'nowrap' }}>{product.salePrice ?? '—'}</td>
+                  <td className="admin-td" style={{ color: S.primary, fontWeight: 500 }}>{product.stock}</td>
+                  <td className="admin-td">
+                    <span className={`inline-block px-2.5 py-1 text-xs rounded-sm font-medium badge-${stockStatus}`}>
+                      {stockLabel}
                     </span>
                   </td>
                 </tr>
@@ -380,137 +387,149 @@ function CatalogueTable() {
           </tbody>
         </table>
       </div>
-    </>
-  );
-}
-
-function CustomersTable({ customers }: { customers: Customer[] }) {
-  if (customers.length === 0) {
-    return (
-      <div className="border border-gold/15 bg-surface py-16 text-center rounded-sm">
-        <p className="text-xs text-stone">No customer records found.</p>
-      </div>
-    );
-  }
-
-  return (
-    <div className="overflow-x-auto border border-gold/15 bg-surface rounded-sm">
-      <table className="w-full border-collapse">
-        <thead>
-          <tr className="border-b border-gold/15 bg-muted">
-            <th className={thClass}>Name</th>
-            <th className={thClass}>Email</th>
-            <th className={thClass}>Phone</th>
-            <th className={thClass}>Orders</th>
-            <th className={thClass}>Total Spent</th>
-            <th className={thClass}>Last Order</th>
-          </tr>
-        </thead>
-        <tbody>
-          {customers.map((customer) => (
-            <tr key={customer.email} className="border-b border-gold/10 last:border-b-0 hover:bg-muted/40 transition-colors">
-              <td className={`${tdClass} font-medium text-ivory`}>{customer.name}</td>
-              <td className={`${tdClass} text-stone`}>{customer.email}</td>
-              <td className={`${tdClass} text-stone`}>{customer.phone}</td>
-              <td className={tdClass}>{customer.orders}</td>
-              <td className={`${tdClass} whitespace-nowrap text-gold font-semibold`}>
-                {formatPrice(customer.totalSpent)}
-              </td>
-              <td className={`${tdClass} whitespace-nowrap text-stone`}>
-                {formatOrderDate(customer.lastOrder)}
-              </td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </div>
   );
 }
 
+/* ─── Customers Table ──────────────────────────────────────────────── */
+function CustomersTable({ customers }: { customers: Customer[] }) {
+  const S = { border: 'var(--color-admin-border)', surf: 'var(--color-admin-surf)', elev: 'var(--color-admin-elev)', primary: 'var(--color-text-primary)', secondary: 'var(--color-text-secondary)', muted: 'var(--color-text-muted)', champ: 'var(--color-champagne)' };
+
+  return (
+    <div>
+      <h2 className="font-heading mb-5" style={{ fontSize: '1.35rem', color: S.primary, fontWeight: 400 }}>Customers ({customers.length})</h2>
+      {customers.length === 0 ? (
+        <div className="py-20 text-center" style={{ background: S.surf, border: `1px solid ${S.border}` }}>
+          <p style={{ fontSize: '0.9375rem', color: S.muted }}>No customer records yet.</p>
+        </div>
+      ) : (
+        <div className="overflow-x-auto" style={{ background: S.surf, border: `1px solid ${S.border}` }}>
+          <table className="w-full border-collapse">
+            <thead>
+              <tr style={{ borderBottom: `1px solid ${S.border}`, background: S.elev }}>
+                {['Name', 'Email', 'Phone', 'Orders', 'Total Spent', 'Last Order'].map((h) => (
+                  <th key={h} className="admin-th">{h}</th>
+                ))}
+              </tr>
+            </thead>
+            <tbody>
+              {customers.map((c) => (
+                <tr
+                  key={c.email}
+                  style={{ borderBottom: `1px solid ${S.border}`, transition: 'background 0.15s' }}
+                  onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = S.elev; }}
+                  onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = 'transparent'; }}
+                >
+                  <td className="admin-td" style={{ fontWeight: 500, color: S.primary }}>{c.name}</td>
+                  <td className="admin-td" style={{ color: S.secondary }}>{c.email}</td>
+                  <td className="admin-td" style={{ color: S.secondary }}>{c.phone}</td>
+                  <td className="admin-td" style={{ color: S.primary, fontWeight: 500 }}>{c.orders}</td>
+                  <td className="admin-td" style={{ color: S.champ, fontWeight: 600, whiteSpace: 'nowrap' }}>{formatPrice(c.totalSpent)}</td>
+                  <td className="admin-td" style={{ color: S.muted, whiteSpace: 'nowrap' }}>{formatOrderDate(c.lastOrder)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ─── Order Modal ──────────────────────────────────────────────────── */
 function OrderModal({ order, onClose }: { order: StoredOrder; onClose: () => void }) {
+  const S = { border: 'var(--color-admin-border)', surf: 'var(--color-admin-surf)', elev: 'var(--color-admin-elev)', primary: 'var(--color-text-primary)', secondary: 'var(--color-text-secondary)', muted: 'var(--color-text-muted)', champ: 'var(--color-champagne)' };
+
   return (
     <div
       role="dialog"
       aria-modal="true"
-      className="fixed inset-0 z-50 flex items-center justify-center bg-obsidian/80 backdrop-blur-md p-4 animate-fade-in"
+      aria-label={`Order details: ${order.id}`}
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
+      style={{ background: 'rgba(14,12,10,0.85)', backdropFilter: 'blur(8px)' }}
       onClick={onClose}
     >
       <div
-        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto border border-gold/20 bg-surface p-7 rounded-sm shadow-[0_20px_50px_rgba(0,0,0,0.8)]"
+        className="max-h-[90vh] w-full max-w-2xl overflow-y-auto animate-scale-in"
+        style={{ background: S.surf, border: `1px solid ${S.border}`, boxShadow: '0 32px 80px rgba(0,0,0,0.7)' }}
         onClick={(e) => e.stopPropagation()}
       >
-        <div className="flex items-start justify-between gap-4 border-b border-gold/15 pb-4">
+        {/* Modal header */}
+        <div className="flex items-start justify-between gap-4 p-7 pb-5" style={{ borderBottom: `1px solid ${S.border}` }}>
           <div>
-            <p className="text-[10px] uppercase tracking-[0.2em] text-gold font-semibold">Order Details</p>
-            <h2 className="mt-1 font-heading text-2xl tracking-[0.1em] text-ivory">{order.id}</h2>
+            <p style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: S.champ }}>Order Details</p>
+            <h2 className="font-heading mt-1.5" style={{ fontSize: '1.5rem', color: S.primary, fontWeight: 400 }}>{order.id}</h2>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="text-[10px] uppercase tracking-[0.18em] text-stone hover:text-gold transition-colors"
+            className="flex h-9 w-9 items-center justify-center transition-opacity hover:opacity-60"
+            style={{ color: S.muted, background: S.elev, border: `1px solid ${S.border}` }}
+            aria-label="Close modal"
           >
-            Close ✕
+            <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+            </svg>
           </button>
         </div>
 
-        <dl className="mt-5 grid gap-4 text-xs sm:grid-cols-2">
-          <div>
-            <dt className="text-[10px] uppercase tracking-[0.14em] text-gold">Placed On</dt>
-            <dd className="mt-1 text-ivory">{formatOrderDate(order.placedAt)}</dd>
-          </div>
-          <div>
-            <dt className="text-[10px] uppercase tracking-[0.14em] text-gold">Status</dt>
-            <dd className="mt-1 text-ivory font-semibold">{order.status}</dd>
-          </div>
-          <div>
-            <dt className="text-[10px] uppercase tracking-[0.14em] text-gold">Payment Method</dt>
-            <dd className="mt-1 text-ivory">{order.paymentMethod}</dd>
-          </div>
-          <div>
-            <dt className="text-[10px] uppercase tracking-[0.14em] text-gold">Phone</dt>
-            <dd className="mt-1 text-ivory">{order.phone}</dd>
-          </div>
-          <div className="sm:col-span-2">
-            <dt className="text-[10px] uppercase tracking-[0.14em] text-gold">Delivery Address</dt>
-            <dd className="mt-1 text-ivory">
-              {order.customer} &mdash; {order.address}
-            </dd>
-          </div>
-        </dl>
-
-        <ul className="mt-6 border-t border-gold/15 pt-4">
-          {order.items.map((item) => (
-            <li
-              key={`${item.id}-${item.size}-${item.color}`}
-              className="flex items-start justify-between gap-4 border-b border-gold/10 py-3 last:border-b-0"
-            >
-              <div>
-                <p className="text-xs font-medium text-ivory">{item.name}</p>
-                <p className="mt-0.5 text-[10px] uppercase tracking-[0.14em] text-stone">
-                  Size: {item.size} &middot; Shade: {item.color} &middot; Qty {item.quantity}
-                </p>
+        <div className="p-7">
+          {/* Order meta */}
+          <dl className="grid gap-5 sm:grid-cols-2">
+            {[
+              { label: 'Placed On',       value: formatOrderDate(order.placedAt) },
+              { label: 'Status',          value: order.status, accent: true },
+              { label: 'Payment Method',  value: order.paymentMethod },
+              { label: 'Phone',           value: order.phone },
+            ].map((item) => (
+              <div key={item.label}>
+                <dt style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: S.muted, marginBottom: '0.375rem' }}>{item.label}</dt>
+                <dd style={{ fontSize: '0.9375rem', color: item.accent ? S.champ : S.primary, fontWeight: item.accent ? 600 : 400 }}>{item.value}</dd>
               </div>
-              <p className="shrink-0 text-xs text-gold font-semibold">{item.price}</p>
-            </li>
-          ))}
-        </ul>
+            ))}
+            <div className="sm:col-span-2">
+              <dt style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.14em', textTransform: 'uppercase', color: S.muted, marginBottom: '0.375rem' }}>Delivery Address</dt>
+              <dd style={{ fontSize: '0.9375rem', color: S.primary }}>{order.customer} — {order.address}</dd>
+            </div>
+          </dl>
 
-        <dl className="mt-5 border-t border-gold/15 pt-4 text-xs space-y-2">
-          <div className="flex justify-between">
-            <dt className="text-stone">Subtotal</dt>
-            <dd className="text-ivory">{formatPrice(order.subtotal)}</dd>
-          </div>
-          <div className="flex justify-between">
-            <dt className="text-stone">Delivery</dt>
-            <dd className="text-gold">
-              {order.shipping === 0 ? 'Complimentary' : formatPrice(order.shipping)}
-            </dd>
-          </div>
-          <div className="mt-2 flex justify-between border-t border-gold/15 pt-3">
-            <dt className="font-heading text-base text-ivory">Total</dt>
-            <dd className="font-heading text-lg text-gold font-bold">{formatPrice(order.total)}</dd>
-          </div>
-        </dl>
+          {/* Order items */}
+          <ul className="mt-7" style={{ borderTop: `1px solid ${S.border}`, paddingTop: '1.25rem' }}>
+            {order.items.map((item) => (
+              <li
+                key={`${item.id}-${item.size}-${item.color}`}
+                className="flex items-start justify-between gap-4 py-3.5"
+                style={{ borderBottom: `1px solid ${S.border}` }}
+              >
+                <div>
+                  <p style={{ fontSize: '0.9375rem', fontWeight: 500, color: S.primary }}>{item.name}</p>
+                  <p className="mt-1" style={{ fontSize: '0.8125rem', color: S.muted, letterSpacing: '0.08em', textTransform: 'uppercase' }}>
+                    Size: {item.size} · Shade: {item.color} · Qty {item.quantity}
+                  </p>
+                </div>
+                <p style={{ fontSize: '0.9375rem', fontWeight: 600, color: S.champ, flexShrink: 0 }}>{item.price}</p>
+              </li>
+            ))}
+          </ul>
+
+          {/* Totals */}
+          <dl className="mt-5 space-y-3" style={{ borderTop: `1px solid ${S.border}`, paddingTop: '1.25rem' }}>
+            <div className="flex justify-between" style={{ fontSize: '0.9rem' }}>
+              <dt style={{ color: S.secondary }}>Subtotal</dt>
+              <dd style={{ color: S.primary }}>{formatPrice(order.subtotal)}</dd>
+            </div>
+            <div className="flex justify-between" style={{ fontSize: '0.9rem' }}>
+              <dt style={{ color: S.secondary }}>Delivery</dt>
+              <dd style={{ color: order.shipping === 0 ? S.champ : S.primary }}>
+                {order.shipping === 0 ? 'Complimentary' : formatPrice(order.shipping)}
+              </dd>
+            </div>
+            <div className="flex justify-between pt-3" style={{ borderTop: `1px solid ${S.border}`, fontSize: '1.0625rem' }}>
+              <dt className="font-heading" style={{ color: S.primary, fontWeight: 500 }}>Total</dt>
+              <dd className="font-heading" style={{ color: S.champ, fontWeight: 600 }}>{formatPrice(order.total)}</dd>
+            </div>
+          </dl>
+        </div>
       </div>
     </div>
   );
