@@ -1,6 +1,6 @@
 // src/data/products.ts
 // Single source of truth for the Noveira catalog.
-// Covers Women, Men, and Children — no external database.
+// Covers Women, Men, and Children.
 
 export interface Product {
   id: number;
@@ -341,6 +341,31 @@ export function updateStock(id: number, newStock: number): Product | undefined {
   return p;
 }
 
+export function addLocalProduct(prodData: Omit<Product, 'id'>): Product {
+  const newId = products.length > 0 ? Math.max(...products.map((p) => p.id)) + 1 : 1;
+  const newProduct: Product = { id: newId, ...prodData };
+  products.unshift(newProduct);
+  return newProduct;
+}
+
+export function updateLocalProduct(id: number, prodData: Partial<Product>): Product | undefined {
+  const index = products.findIndex((p) => p.id === id);
+  if (index !== -1) {
+    products[index] = { ...products[index], ...prodData };
+    return products[index];
+  }
+  return undefined;
+}
+
+export function deleteLocalProduct(id: number): boolean {
+  const index = products.findIndex((p) => p.id === id);
+  if (index !== -1) {
+    products.splice(index, 1);
+    return true;
+  }
+  return false;
+}
+
 export function getProductById(id: number): Product | undefined {
   syncStockFromStorage();
   return products.find((p) => p.id === id);
@@ -359,14 +384,12 @@ export function parsePrice(value: string | number | undefined | null): number {
   if (typeof value === 'number') return Number.isNaN(value) ? 0 : value;
   if (!value) return 0;
 
-  // Remove currency words like "Rs." or "PKR", remove commas, and trim
   const cleaned = String(value)
     .replace(/Rs\.?/gi, "")
     .replace(/PKR/gi, "")
     .replace(/,/g, "")
     .trim();
 
-  // Match the actual decimal or integer number
   const match = cleaned.match(/([0-9]+(?:\.[0-9]+)?)/);
   if (!match) return 0;
 

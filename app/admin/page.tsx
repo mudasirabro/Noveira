@@ -2,10 +2,11 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import AdminGuard from '@/src/components/AdminGuard';
 import { getAdminEmail, logoutAdmin } from '@/src/utils/auth';
-import { formatPrice, products, syncStockFromStorage, updateStock, Product } from '@/src/data/products';
+import { formatPrice, products as initialProducts, Product } from '@/src/data/products';
 import {
   ORDER_STATUSES,
   formatOrderDate,
@@ -45,6 +46,8 @@ const S = {
   champ: 'var(--color-champagne)',
 };
 
+const ALL_SIZES = ['XS', 'S', 'M', 'L', 'XL', 'XXL', '2Y', '4Y', '6Y', '8Y', '10Y', '48', '50', '52', 'One Size'];
+
 function statusBadgeClass(status: OrderStatus): string {
   switch (status) {
     case 'Pending':    return 'badge-pending';
@@ -60,16 +63,31 @@ function AdminDashboard() {
   const router = useRouter();
   const [tab, setTab] = useState<Tab>('overview');
   const [orders, setOrders] = useState<StoredOrder[]>([]);
+  const [productList, setProductList] = useState<Product[]>(initialProducts);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [notice, setNotice] = useState('');
   const [hydrated, setHydrated] = useState(false);
-  const [, setCatalogueVersion] = useState(0);
 
+  // Modal states for Product CRUD
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [deletingProduct, setDeletingProduct] = useState<Product | null>(null);
+
+  // Initial load: fetch orders & products from API routes (Supabase / local fallback)
   useEffect(() => {
-    syncStockFromStorage();
     setOrders(sortByNewest(readOrders()));
 
-    // Fetch from Supabase / API route
+    // Fetch Products
+    fetch('/api/products')
+      .then((res) => res.json())
+      .then((res) => {
+        if (res.success && Array.isArray(res.data) && res.data.length > 0) {
+          setProductList(res.data);
+        }
+      })
+      .catch((err) => console.error('API products fetch error:', err));
+
+    // Fetch Orders
     fetch('/api/orders')
       .then((res) => res.json())
       .then((res) => {
@@ -104,8 +122,9 @@ function AdminDashboard() {
   }, []);
 
   const handleStockUpdate = useCallback(async (id: number, newStock: number) => {
-    updateStock(id, newStock);
-    setCatalogueVersion((v) => v + 1);
+    setProductList((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, stock: newStock } : p))
+    );
     setNotice(`Stock updated for Product #${id}.`);
 
     try {
@@ -119,6 +138,57 @@ function AdminDashboard() {
     }
   }, []);
 
+  const handleSaveProduct = useCallback(async (formData: any, isEdit: boolean) => {
+    try {
+      const endpoint = '/api/products';
+      const method = isEdit ? 'PUT' : 'POST';
+
+      const res = await fetch(endpoint, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to save product');
+      }
+
+      if (isEdit) {
+        setProductList((prev) =>
+          prev.map((p) => (p.id === formData.id ? { ...p, ...formData } : p))
+        );
+        setNotice(`Product "${formData.name}" updated successfully.`);
+      } else {
+        if (data.product) {
+          setProductList((prev) => [data.product, ...prev]);
+        }
+        setNotice(`New Product "${formData.name}" added to store & database.`);
+      }
+
+      setIsAddModalOpen(false);
+      setEditingProduct(null);
+    } catch (err: any) {
+      alert(err.message || 'Error saving product');
+    }
+  }, []);
+
+  const handleDeleteProduct = useCallback(async (id: number) => {
+    try {
+      const res = await fetch(`/api/products?id=${id}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to delete product');
+      }
+
+      setProductList((prev) => prev.filter((p) => p.id !== id));
+      setNotice(`Product #${id} permanently removed.`);
+      setDeletingProduct(null);
+    } catch (err: any) {
+      alert(err.message || 'Error deleting product');
+    }
+  }, []);
+
   useEffect(() => {
     if (!notice) return;
     const t = window.setTimeout(() => setNotice(''), 3500);
@@ -129,13 +199,6 @@ function AdminDashboard() {
     () => orders.find((o) => o.id === selectedId) ?? null,
     [orders, selectedId]
   );
-
-  useEffect(() => {
-    if (!selectedOrder) return;
-    const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') setSelectedId(null); };
-    document.addEventListener('keydown', onKey);
-    return () => document.removeEventListener('keydown', onKey);
-  }, [selectedOrder]);
 
   const customers = useMemo(() => {
     const map = new Map<string, Customer>();
@@ -157,17 +220,17 @@ function AdminDashboard() {
     [orders]
   );
   const pendingCount = orders.filter((o) => o.status === 'Pending').length;
-  const lowStock     = products.filter((p) => p.stock > 0 && p.stock <= 5).length;
-  const soldOut      = products.filter((p) => p.stock === 0).length;
+  const lowStock     = productList.filter((p) => p.stock > 0 && p.stock <= 5).length;
+  const soldOut      = productList.filter((p) => p.stock === 0).length;
 
   const stats = [
-    { label: 'Total Orders',    value: String(orders.length),   accent: false },
-    { label: 'Pending',         value: String(pendingCount),    accent: pendingCount > 0 },
-    { label: 'Revenue',         value: formatPrice(revenue),    accent: true },
-    { label: 'Customers',       value: String(customers.length), accent: false },
-    { label: 'Catalog Items',   value: String(products.length), accent: false },
-    { label: 'Low Stock',       value: String(lowStock),        accent: lowStock > 0 },
-    { label: 'Sold Out',        value: String(soldOut),         accent: soldOut > 0 },
+    { label: 'Total Orders',    value: String(orders.length),      accent: false },
+    { label: 'Pending',         value: String(pendingCount),       accent: pendingCount > 0 },
+    { label: 'Revenue',         value: formatPrice(revenue),       accent: true },
+    { label: 'Customers',       value: String(customers.length),   accent: false },
+    { label: 'Catalog Items',   value: String(productList.length), accent: false },
+    { label: 'Low Stock',       value: String(lowStock),           accent: lowStock > 0 },
+    { label: 'Sold Out',        value: String(soldOut),            accent: soldOut > 0 },
   ];
 
   if (!hydrated) {
@@ -282,7 +345,13 @@ function AdminDashboard() {
             />
           )}
           {tab === 'catalogue' && (
-            <CatalogueTable onStockUpdate={handleStockUpdate} />
+            <CatalogueTable
+              products={productList}
+              onStockUpdate={handleStockUpdate}
+              onOpenAdd={() => setIsAddModalOpen(true)}
+              onOpenEdit={(p) => setEditingProduct(p)}
+              onOpenDelete={(p) => setDeletingProduct(p)}
+            />
           )}
           {tab === 'customers' && <CustomersTable customers={customers} />}
         </div>
@@ -291,6 +360,24 @@ function AdminDashboard() {
       {/* Order modal */}
       {selectedOrder && (
         <OrderModal order={selectedOrder} onClose={() => setSelectedId(null)} />
+      )}
+
+      {/* Add / Edit Product Modal */}
+      {(isAddModalOpen || editingProduct) && (
+        <ProductFormModal
+          product={editingProduct}
+          onClose={() => { setIsAddModalOpen(false); setEditingProduct(null); }}
+          onSave={handleSaveProduct}
+        />
+      )}
+
+      {/* Delete Product Confirmation Modal */}
+      {deletingProduct && (
+        <DeleteConfirmModal
+          product={deletingProduct}
+          onClose={() => setDeletingProduct(null)}
+          onConfirm={() => handleDeleteProduct(deletingProduct.id)}
+        />
       )}
     </main>
   );
@@ -380,32 +467,63 @@ function OrdersTable({
 }
 
 /* ─── Catalogue & Stock Management Table ───────────────────────────── */
-function CatalogueTable({ onStockUpdate }: { onStockUpdate: (id: number, stock: number) => void }) {
+function CatalogueTable({
+  products,
+  onStockUpdate,
+  onOpenAdd,
+  onOpenEdit,
+  onOpenDelete,
+}: {
+  products: Product[];
+  onStockUpdate: (id: number, stock: number) => void;
+  onOpenAdd: () => void;
+  onOpenEdit: (product: Product) => void;
+  onOpenDelete: (product: Product) => void;
+}) {
   const S = { border: 'var(--color-admin-border)', surf: 'var(--color-admin-surf)', elev: 'var(--color-admin-elev)', primary: 'var(--color-text-primary)', secondary: 'var(--color-text-secondary)', muted: 'var(--color-text-muted)', champ: 'var(--color-champagne)' };
 
   return (
     <div>
-      <div className="flex flex-wrap items-center justify-between gap-4 mb-5">
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-6">
         <div>
           <h2 className="font-heading" style={{ fontSize: '1.35rem', color: S.primary, fontWeight: 400 }}>Product Catalogue & Stock Control</h2>
           <p className="mt-1 text-sm" style={{ color: S.muted }}>
-            Adjust stock quantities directly below. Changes persist live across the storefront.
+            Manage store garments, add new items, edit pricing, or remove pieces live in Supabase.
           </p>
         </div>
+
+        {/* Add Product Button */}
+        <button
+          type="button"
+          onClick={onOpenAdd}
+          className="btn-admin-primary flex items-center gap-2"
+        >
+          <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 4v16m8-8H4" />
+          </svg>
+          Add New Product
+        </button>
       </div>
 
       <div className="overflow-x-auto" style={{ background: S.surf, border: `1px solid ${S.border}` }}>
         <table className="w-full border-collapse">
           <thead>
             <tr style={{ borderBottom: `1px solid ${S.border}`, background: S.elev }}>
-              {['ID', 'Garment', 'Gender', 'Category', 'Price', 'Sale Price', 'Stock Control', 'Status'].map((h) => (
+              {['ID', 'Garment', 'Gender', 'Category', 'Price', 'Sale Price', 'Stock Control', 'Status', 'Actions'].map((h) => (
                 <th key={h} className="admin-th">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
             {products.map((product) => (
-              <StockRow key={product.id} product={product} onUpdate={onStockUpdate} S={S} />
+              <StockRow
+                key={product.id}
+                product={product}
+                onUpdate={onStockUpdate}
+                onEdit={() => onOpenEdit(product)}
+                onDelete={() => onOpenDelete(product)}
+                S={S}
+              />
             ))}
           </tbody>
         </table>
@@ -415,10 +533,12 @@ function CatalogueTable({ onStockUpdate }: { onStockUpdate: (id: number, stock: 
 }
 
 function StockRow({
-  product, onUpdate, S
+  product, onUpdate, onEdit, onDelete, S
 }: {
   product: Product;
   onUpdate: (id: number, stock: number) => void;
+  onEdit: () => void;
+  onDelete: () => void;
   S: Record<string, string>;
 }) {
   const [stockVal, setStockVal] = useState(product.stock);
@@ -450,7 +570,14 @@ function StockRow({
       onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = 'transparent'; }}
     >
       <td className="admin-td" style={{ color: S.muted }}>{product.id}</td>
-      <td className="admin-td font-heading" style={{ color: S.primary, fontWeight: 500, fontSize: '0.9375rem' }}>{product.name}</td>
+      <td className="admin-td font-heading" style={{ color: S.primary, fontWeight: 500, fontSize: '0.9375rem' }}>
+        <div className="flex items-center gap-3">
+          <div className="relative h-10 w-8 flex-shrink-0 bg-stone-800 overflow-hidden rounded-sm">
+            <Image src={product.image} alt={product.name} fill className="object-cover" />
+          </div>
+          <span>{product.name}</span>
+        </div>
+      </td>
       <td className="admin-td" style={{ color: S.champ, fontWeight: 500 }}>{product.gender}</td>
       <td className="admin-td" style={{ color: S.secondary }}>{product.category}</td>
       <td className="admin-td" style={{ color: S.primary, whiteSpace: 'nowrap' }}>{product.price}</td>
@@ -496,7 +623,349 @@ function StockRow({
           {stockLabel}
         </span>
       </td>
+
+      {/* Actions (Edit / Delete) */}
+      <td className="admin-td">
+        <div className="flex items-center gap-2">
+          <button
+            type="button"
+            onClick={onEdit}
+            className="px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.08em] transition-colors rounded"
+            style={{ border: `1px solid ${S.border}`, color: S.champ, background: S.elev }}
+          >
+            Edit
+          </button>
+
+          <button
+            type="button"
+            onClick={onDelete}
+            className="px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.08em] transition-colors rounded"
+            style={{ border: '1px solid rgba(200,80,80,0.3)', color: '#E07070', background: 'rgba(200,80,80,0.1)' }}
+          >
+            Delete
+          </button>
+        </div>
+      </td>
     </tr>
+  );
+}
+
+/* ─── Add / Edit Product Form Modal ────────────────────────────────── */
+function ProductFormModal({
+  product,
+  onClose,
+  onSave,
+}: {
+  product: Product | null;
+  onClose: () => void;
+  onSave: (formData: any, isEdit: boolean) => void;
+}) {
+  const isEdit = Boolean(product);
+
+  const [name, setName] = useState(product?.name || '');
+  const [gender, setGender] = useState<string>(product?.gender || 'Women');
+  const [category, setCategory] = useState(product?.category || 'Dresses');
+  const [price, setPrice] = useState(product?.price || 'Rs.15,000.00 PKR');
+  const [salePrice, setSalePrice] = useState(product?.salePrice || '');
+  const [stock, setStock] = useState<number>(product?.stock ?? 10);
+  const [image, setImage] = useState(product?.image || 'https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=600&h=800&fit=crop&q=80');
+  const [description, setDescription] = useState(product?.description || '');
+  const [selectedSizes, setSelectedSizes] = useState<string[]>(product?.sizes || ['S', 'M', 'L']);
+  const [colorsText, setColorsText] = useState(product?.colors?.join(', ') || 'Ivory, Onyx');
+  const [saving, setSaving] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!name || !price) return;
+    setSaving(true);
+
+    const colorsArr = colorsText.split(',').map((c) => c.trim()).filter(Boolean);
+
+    await onSave(
+      {
+        id: product?.id,
+        name,
+        gender,
+        category,
+        price,
+        salePrice: salePrice || undefined,
+        stock: Number(stock),
+        image,
+        description,
+        sizes: selectedSizes,
+        colors: colorsArr,
+      },
+      isEdit
+    );
+
+    setSaving(false);
+  };
+
+  const toggleSize = (sz: string) => {
+    setSelectedSizes((prev) =>
+      prev.includes(sz) ? prev.filter((s) => s !== sz) : [...prev, sz]
+    );
+  };
+
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
+      style={{ background: 'rgba(14,12,10,0.85)', backdropFilter: 'blur(8px)' }}
+      onClick={onClose}
+    >
+      <div
+        className="max-h-[92vh] w-full max-w-2xl overflow-y-auto p-8 animate-scale-in"
+        style={{ background: S.surf, border: `1px solid ${S.border}`, boxShadow: '0 32px 80px rgba(0,0,0,0.8)' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center justify-between pb-6 mb-6" style={{ borderBottom: `1px solid ${S.border}` }}>
+          <div>
+            <p style={{ fontSize: '0.75rem', fontWeight: 600, letterSpacing: '0.2em', textTransform: 'uppercase', color: S.champ }}>
+              Atelier Catalogue Manager
+            </p>
+            <h2 className="font-heading mt-1" style={{ fontSize: '1.6rem', color: S.primary, fontWeight: 400 }}>
+              {isEdit ? `Edit Garment: ${product?.name}` : 'Add New Luxury Garment'}
+            </h2>
+          </div>
+          <button
+            type="button"
+            onClick={onClose}
+            className="flex h-9 w-9 items-center justify-center transition-opacity hover:opacity-60"
+            style={{ color: S.muted, background: S.elev, border: `1px solid ${S.border}` }}
+          >
+            ✕
+          </button>
+        </div>
+
+        <form onSubmit={handleSubmit} className="space-y-6">
+          {/* Name & Gender */}
+          <div className="grid gap-6 sm:grid-cols-2">
+            <div>
+              <label className="block mb-2 text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: S.muted }}>Garment Name</label>
+              <input
+                type="text"
+                required
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                placeholder="e.g. Silk Wrap Dress"
+                className="input-dark"
+              />
+            </div>
+            <div>
+              <label className="block mb-2 text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: S.muted }}>Gender World</label>
+              <select
+                value={gender}
+                onChange={(e) => setGender(e.target.value)}
+                className="input-dark cursor-pointer"
+              >
+                <option value="Women">Women</option>
+                <option value="Men">Men</option>
+                <option value="Children">Children</option>
+              </select>
+            </div>
+          </div>
+
+          {/* Category & Stock */}
+          <div className="grid gap-6 sm:grid-cols-2">
+            <div>
+              <label className="block mb-2 text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: S.muted }}>Category</label>
+              <input
+                type="text"
+                required
+                value={category}
+                onChange={(e) => setCategory(e.target.value)}
+                placeholder="e.g. Dresses, Outerwear, Knitwear"
+                className="input-dark"
+              />
+            </div>
+            <div>
+              <label className="block mb-2 text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: S.muted }}>Stock Quantity</label>
+              <input
+                type="number"
+                min="0"
+                required
+                value={stock}
+                onChange={(e) => setStock(Number(e.target.value))}
+                className="input-dark"
+              />
+            </div>
+          </div>
+
+          {/* Price & Sale Price */}
+          <div className="grid gap-6 sm:grid-cols-2">
+            <div>
+              <label className="block mb-2 text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: S.muted }}>Regular Price (PKR)</label>
+              <input
+                type="text"
+                required
+                value={price}
+                onChange={(e) => setPrice(e.target.value)}
+                placeholder="e.g. Rs.14,300.00 PKR"
+                className="input-dark"
+              />
+            </div>
+            <div>
+              <label className="block mb-2 text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: S.muted }}>Sale Price (Optional)</label>
+              <input
+                type="text"
+                value={salePrice}
+                onChange={(e) => setSalePrice(e.target.value)}
+                placeholder="e.g. Rs.9,800.00 PKR"
+                className="input-dark"
+              />
+            </div>
+          </div>
+
+          {/* Photo Image URL & Live Preview */}
+          <div>
+            <label className="block mb-2 text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: S.muted }}>Photo Image URL</label>
+            <input
+              type="url"
+              required
+              value={image}
+              onChange={(e) => setImage(e.target.value)}
+              placeholder="https://images.unsplash.com/..."
+              className="input-dark"
+            />
+            {image && (
+              <div className="mt-3 flex items-center gap-3 p-3 rounded" style={{ background: S.elev, border: `1px solid ${S.border}` }}>
+                <div className="relative h-14 w-12 flex-shrink-0 overflow-hidden rounded">
+                  <Image src={image} alt="Preview" fill className="object-cover" />
+                </div>
+                <div>
+                  <p className="text-xs font-semibold" style={{ color: S.champ }}>Image Preview</p>
+                  <p className="text-xs truncate max-w-xs" style={{ color: S.muted }}>{image}</p>
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Sizes */}
+          <div>
+            <label className="block mb-2 text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: S.muted }}>Available Sizes</label>
+            <div className="flex flex-wrap gap-2">
+              {ALL_SIZES.map((sz) => {
+                const active = selectedSizes.includes(sz);
+                return (
+                  <button
+                    key={sz}
+                    type="button"
+                    onClick={() => toggleSize(sz)}
+                    className="px-3 py-1.5 text-xs font-semibold rounded border transition-colors"
+                    style={{
+                      background: active ? S.champ : S.elev,
+                      color: active ? '#1E1916' : S.secondary,
+                      borderColor: active ? S.champ : S.border,
+                    }}
+                  >
+                    {sz}
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
+          {/* Colors */}
+          <div>
+            <label className="block mb-2 text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: S.muted }}>Available Shades / Colors (Comma separated)</label>
+            <input
+              type="text"
+              value={colorsText}
+              onChange={(e) => setColorsText(e.target.value)}
+              placeholder="e.g. Ivory, Slate, Onyx"
+              className="input-dark"
+            />
+          </div>
+
+          {/* Description */}
+          <div>
+            <label className="block mb-2 text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: S.muted }}>Description</label>
+            <textarea
+              rows={3}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+              placeholder="Describe the garment fabric, tailoring details, and fit..."
+              className="input-dark"
+              style={{ minHeight: '80px' }}
+            />
+          </div>
+
+          {/* Submit buttons */}
+          <div className="flex justify-end gap-3 pt-4" style={{ borderTop: `1px solid ${S.border}` }}>
+            <button
+              type="button"
+              onClick={onClose}
+              className="btn-admin-outline"
+            >
+              Cancel
+            </button>
+            <button
+              type="submit"
+              disabled={saving}
+              className="btn-admin-primary"
+            >
+              {saving ? 'Saving to Database...' : isEdit ? 'Save Changes' : 'Add to Catalogue'}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+}
+
+/* ─── Delete Confirmation Modal ─────────────────────────────────────── */
+function DeleteConfirmModal({
+  product,
+  onClose,
+  onConfirm,
+}: {
+  product: Product;
+  onClose: () => void;
+  onConfirm: () => void;
+}) {
+  return (
+    <div
+      role="dialog"
+      aria-modal="true"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
+      style={{ background: 'rgba(14,12,10,0.85)', backdropFilter: 'blur(8px)' }}
+      onClick={onClose}
+    >
+      <div
+        className="w-full max-w-md p-8 animate-scale-in"
+        style={{ background: S.surf, border: `1px solid ${S.border}`, boxShadow: '0 32px 80px rgba(0,0,0,0.8)' }}
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="flex items-center gap-3 mb-4 text-[#E07070]">
+          <svg className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+          </svg>
+          <h3 className="font-heading text-2xl font-normal" style={{ color: S.primary }}>
+            Confirm Deletion
+          </h3>
+        </div>
+
+        <p style={{ color: S.secondary, fontSize: '0.9375rem', lineHeight: 1.6 }}>
+          Are you sure you want to delete <strong style={{ color: S.primary }}>&quot;{product.name}&quot;</strong> (Product #{product.id})? This action will permanently remove the item from your store and Supabase database.
+        </p>
+
+        <div className="flex justify-end gap-3 mt-8">
+          <button type="button" onClick={onClose} className="btn-admin-outline">
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            className="px-5 py-2.5 text-xs font-semibold uppercase tracking-[0.1em] rounded transition-colors"
+            style={{ background: '#E07070', color: '#FFFFFF', border: 'none', cursor: 'pointer' }}
+          >
+            Delete Permanently
+          </button>
+        </div>
+      </div>
+    </div>
   );
 }
 
