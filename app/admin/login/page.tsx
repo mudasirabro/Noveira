@@ -118,7 +118,7 @@ export default function AdminLoginPage() {
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="admin@noveira.com"
+                placeholder="Enter your email"
                 className="input-dark"
               />
             </div>
@@ -140,7 +140,7 @@ export default function AdminLoginPage() {
                   required
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder="mudasir"
+                  placeholder="Enter your password"
                   className="input-dark"
                   style={{ paddingRight: '3rem' }}
                 />

@@ -5,7 +5,7 @@ export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
   const adminEmail = (process.env.ADMIN_EMAIL || "admin@noveira.com").trim().toLowerCase();
-  const adminPassword = process.env.ADMIN_PASSWORD || "change-me";
+  const adminPassword = process.env.ADMIN_PASSWORD || "mudasir";
 
   let email: unknown;
   let password: unknown;
