@@ -5,7 +5,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import AdminGuard from '@/src/components/AdminGuard';
 import { getAdminEmail, logoutAdmin } from '@/src/utils/auth';
-import { formatPrice, products } from '@/src/data/products';
+import { formatPrice, products, syncStockFromStorage, updateStock, Product } from '@/src/data/products';
 import {
   ORDER_STATUSES,
   formatOrderDate,
@@ -21,7 +21,7 @@ type Tab = 'overview' | 'orders' | 'catalogue' | 'customers';
 const TABS: { id: Tab; label: string }[] = [
   { id: 'overview', label: 'Overview' },
   { id: 'orders', label: 'Orders' },
-  { id: 'catalogue', label: 'Catalogue' },
+  { id: 'catalogue', label: 'Catalogue & Stock' },
   { id: 'customers', label: 'Customers' },
 ];
 
@@ -63,8 +63,10 @@ function AdminDashboard() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [notice, setNotice] = useState('');
   const [hydrated, setHydrated] = useState(false);
+  const [, setCatalogueVersion] = useState(0);
 
   useEffect(() => {
+    syncStockFromStorage();
     setOrders(sortByNewest(readOrders()));
     setHydrated(true);
   }, []);
@@ -79,6 +81,12 @@ function AdminDashboard() {
   const handleStatusChange = useCallback((id: string, status: OrderStatus) => {
     setOrders(sortByNewest(setOrderStatus(id, status)));
     setNotice(`Order ${id} updated to ${status}.`);
+  }, []);
+
+  const handleStockUpdate = useCallback((id: number, newStock: number) => {
+    updateStock(id, newStock);
+    setCatalogueVersion((v) => v + 1);
+    setNotice(`Stock updated for Product #${id}.`);
   }, []);
 
   useEffect(() => {
@@ -137,7 +145,7 @@ function AdminDashboard() {
       <main className="flex min-h-screen items-center justify-center" style={{ background: S.bg }}>
         <div className="text-center">
           <div className="inline-block h-8 w-8 border-2 border-t-transparent border-b-transparent rounded-full animate-spin-slow" style={{ borderColor: S.champ, borderTopColor: 'transparent' }} />
-          <p className="mt-4 text-label-dark">Loading Dashboard...</p>
+          <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: S.muted }}>Loading Dashboard...</p>
         </div>
       </main>
     );
@@ -243,7 +251,9 @@ function AdminDashboard() {
               heading={`All Orders (${orders.length})`}
             />
           )}
-          {tab === 'catalogue' && <CatalogueTable />}
+          {tab === 'catalogue' && (
+            <CatalogueTable onStockUpdate={handleStockUpdate} />
+          )}
           {tab === 'customers' && <CustomersTable customers={customers} />}
         </div>
       </div>
@@ -339,55 +349,124 @@ function OrdersTable({
   );
 }
 
-/* ─── Catalogue Table ──────────────────────────────────────────────── */
-function CatalogueTable() {
+/* ─── Catalogue & Stock Management Table ───────────────────────────── */
+function CatalogueTable({ onStockUpdate }: { onStockUpdate: (id: number, stock: number) => void }) {
   const S = { border: 'var(--color-admin-border)', surf: 'var(--color-admin-surf)', elev: 'var(--color-admin-elev)', primary: 'var(--color-text-primary)', secondary: 'var(--color-text-secondary)', muted: 'var(--color-text-muted)', champ: 'var(--color-champagne)' };
 
   return (
     <div>
-      <h2 className="font-heading mb-2" style={{ fontSize: '1.35rem', color: S.primary, fontWeight: 400 }}>Product Catalogue</h2>
-      <p className="mb-5 text-sm" style={{ color: S.muted }}>
-        Catalog is statically defined in <code style={{ color: S.champ, fontFamily: 'monospace' }}>src/data/products.ts</code>. Edit that file to modify the catalog.
-      </p>
+      <div className="flex flex-wrap items-center justify-between gap-4 mb-5">
+        <div>
+          <h2 className="font-heading" style={{ fontSize: '1.35rem', color: S.primary, fontWeight: 400 }}>Product Catalogue & Stock Control</h2>
+          <p className="mt-1 text-sm" style={{ color: S.muted }}>
+            Adjust stock quantities directly below. Changes persist live across the storefront.
+          </p>
+        </div>
+      </div>
+
       <div className="overflow-x-auto" style={{ background: S.surf, border: `1px solid ${S.border}` }}>
         <table className="w-full border-collapse">
           <thead>
             <tr style={{ borderBottom: `1px solid ${S.border}`, background: S.elev }}>
-              {['ID', 'Garment', 'Gender', 'Category', 'Price', 'Sale Price', 'Stock', 'Status'].map((h) => (
+              {['ID', 'Garment', 'Gender', 'Category', 'Price', 'Sale Price', 'Stock Control', 'Status'].map((h) => (
                 <th key={h} className="admin-th">{h}</th>
               ))}
             </tr>
           </thead>
           <tbody>
-            {products.map((product) => {
-              const stockStatus = product.stock === 0 ? 'soldout' : product.stock <= 5 ? 'lowstock' : 'instock';
-              const stockLabel  = product.stock === 0 ? 'Sold Out' : product.stock <= 5 ? 'Low Stock' : 'In Stock';
-              return (
-                <tr
-                  key={product.id}
-                  style={{ borderBottom: `1px solid ${S.border}`, transition: 'background 0.15s' }}
-                  onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = S.elev; }}
-                  onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = 'transparent'; }}
-                >
-                  <td className="admin-td" style={{ color: S.muted }}>{product.id}</td>
-                  <td className="admin-td font-heading" style={{ color: S.primary, fontWeight: 500, fontSize: '0.9375rem' }}>{product.name}</td>
-                  <td className="admin-td" style={{ color: S.champ, fontWeight: 500 }}>{product.gender}</td>
-                  <td className="admin-td" style={{ color: S.secondary }}>{product.category}</td>
-                  <td className="admin-td" style={{ color: S.primary, whiteSpace: 'nowrap' }}>{product.price}</td>
-                  <td className="admin-td" style={{ color: S.champ, whiteSpace: 'nowrap' }}>{product.salePrice ?? '—'}</td>
-                  <td className="admin-td" style={{ color: S.primary, fontWeight: 500 }}>{product.stock}</td>
-                  <td className="admin-td">
-                    <span className={`inline-block px-2.5 py-1 text-xs rounded-sm font-medium badge-${stockStatus}`}>
-                      {stockLabel}
-                    </span>
-                  </td>
-                </tr>
-              );
-            })}
+            {products.map((product) => (
+              <StockRow key={product.id} product={product} onUpdate={onStockUpdate} S={S} />
+            ))}
           </tbody>
         </table>
       </div>
     </div>
+  );
+}
+
+function StockRow({
+  product, onUpdate, S
+}: {
+  product: Product;
+  onUpdate: (id: number, stock: number) => void;
+  S: Record<string, string>;
+}) {
+  const [stockVal, setStockVal] = useState(product.stock);
+
+  useEffect(() => {
+    setStockVal(product.stock);
+  }, [product.stock]);
+
+  const stockStatus = stockVal === 0 ? 'soldout' : stockVal <= 5 ? 'lowstock' : 'instock';
+  const stockLabel  = stockVal === 0 ? 'Sold Out' : stockVal <= 5 ? 'Low Stock' : 'In Stock';
+
+  const handleAdjust = (delta: number) => {
+    const next = Math.max(0, stockVal + delta);
+    setStockVal(next);
+    onUpdate(product.id, next);
+  };
+
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const val = Number.parseInt(e.target.value || '0', 10);
+    const next = Math.max(0, Number.isNaN(val) ? 0 : val);
+    setStockVal(next);
+    onUpdate(product.id, next);
+  };
+
+  return (
+    <tr
+      style={{ borderBottom: `1px solid ${S.border}`, transition: 'background 0.15s' }}
+      onMouseEnter={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = S.elev; }}
+      onMouseLeave={(e) => { (e.currentTarget as HTMLTableRowElement).style.background = 'transparent'; }}
+    >
+      <td className="admin-td" style={{ color: S.muted }}>{product.id}</td>
+      <td className="admin-td font-heading" style={{ color: S.primary, fontWeight: 500, fontSize: '0.9375rem' }}>{product.name}</td>
+      <td className="admin-td" style={{ color: S.champ, fontWeight: 500 }}>{product.gender}</td>
+      <td className="admin-td" style={{ color: S.secondary }}>{product.category}</td>
+      <td className="admin-td" style={{ color: S.primary, whiteSpace: 'nowrap' }}>{product.price}</td>
+      <td className="admin-td" style={{ color: S.champ, whiteSpace: 'nowrap' }}>{product.salePrice ?? '—'}</td>
+
+      {/* Stock Control Cell */}
+      <td className="admin-td">
+        <div className="flex items-center gap-1.5" style={{ background: S.elev, padding: '3px 6px', borderRadius: '4px', border: `1px solid ${S.border}`, width: 'fit-content' }}>
+          <button
+            type="button"
+            onClick={() => handleAdjust(-1)}
+            aria-label={`Decrease stock for ${product.name}`}
+            className="flex h-7 w-7 items-center justify-center rounded transition-colors hover:bg-[var(--color-admin-border)] font-bold text-sm"
+            style={{ color: S.primary }}
+          >
+            −
+          </button>
+
+          <input
+            type="number"
+            min="0"
+            value={stockVal}
+            onChange={handleChange}
+            className="w-12 text-center bg-transparent text-sm font-semibold focus:outline-none"
+            style={{ color: S.champ }}
+            aria-label={`Stock count for ${product.name}`}
+          />
+
+          <button
+            type="button"
+            onClick={() => handleAdjust(1)}
+            aria-label={`Increase stock for ${product.name}`}
+            className="flex h-7 w-7 items-center justify-center rounded transition-colors hover:bg-[var(--color-admin-border)] font-bold text-sm"
+            style={{ color: S.primary }}
+          >
+            +
+          </button>
+        </div>
+      </td>
+
+      <td className="admin-td">
+        <span className={`inline-block px-2.5 py-1 text-xs rounded-sm font-semibold badge-${stockStatus}`}>
+          {stockLabel}
+        </span>
+      </td>
+    </tr>
   );
 }
 

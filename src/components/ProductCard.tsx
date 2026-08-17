@@ -20,6 +20,7 @@ export default function ProductCard({ product, badge, priority = false }: Produc
   const [wishAnimating, setWishAnimating] = useState(false);
 
   const soldOut = product.stock === 0;
+  const lowStock = product.stock > 0 && product.stock <= 5;
   const saved = hydrated && isInWishlist(product.id);
 
   const handleQuickAdd = (e: React.MouseEvent) => {
@@ -28,7 +29,7 @@ export default function ProductCard({ product, badge, priority = false }: Produc
     if (soldOut) return;
     addToCart(product, 1, product.sizes?.[0], product.colors?.[0]);
     setAdded(true);
-    setTimeout(() => setAdded(false), 2000);
+    setTimeout(() => setAdded(false), 2200);
   };
 
   const handleWishlist = (e: React.MouseEvent) => {
@@ -40,10 +41,10 @@ export default function ProductCard({ product, badge, priority = false }: Produc
   };
 
   return (
-    <article className="group relative flex flex-col">
+    <article className="product-card group relative flex flex-col">
       {/* Image container */}
       <div
-        className="relative w-full overflow-hidden"
+        className="relative w-full overflow-hidden rounded-sm"
         style={{ aspectRatio: '3/4', background: 'var(--color-bg-warm)' }}
       >
         <Link href={`/products/${product.id}`} className="block h-full w-full" aria-label={product.name}>
@@ -63,7 +64,7 @@ export default function ProductCard({ product, badge, priority = false }: Produc
           {/* Hover overlay */}
           <div
             className="absolute inset-0 transition-opacity duration-500 opacity-0 group-hover:opacity-100 pointer-events-none"
-            style={{ background: 'rgba(30,25,22,0.06)' }}
+            style={{ background: 'rgba(28,25,23,0.05)' }}
           />
         </Link>
 
@@ -71,8 +72,8 @@ export default function ProductCard({ product, badge, priority = false }: Produc
         <div className="pointer-events-none absolute left-3 top-3 flex flex-col items-start gap-1.5 z-10">
           {soldOut ? (
             <span
-              className="px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em]"
-              style={{ background: 'var(--color-espresso)', color: 'var(--color-ivory)' }}
+              className="px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em]"
+              style={{ background: 'var(--color-espresso)', color: '#F7F3EC' }}
             >
               Sold Out
             </span>
@@ -80,18 +81,26 @@ export default function ProductCard({ product, badge, priority = false }: Produc
             <>
               {badge && (
                 <span
-                  className="px-3 py-1.5 text-xs font-semibold uppercase tracking-[0.16em]"
-                  style={{ background: 'var(--color-espresso)', color: 'var(--color-ivory)' }}
+                  className="px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em]"
+                  style={{ background: 'var(--color-espresso)', color: '#F7F3EC' }}
                 >
                   {badge}
                 </span>
               )}
               {product.isSale && (
                 <span
-                  className="px-3 py-1.5 text-xs font-bold uppercase tracking-[0.16em]"
-                  style={{ background: 'var(--color-champagne)', color: 'var(--color-espresso)' }}
+                  className="px-3 py-1 text-xs font-bold uppercase tracking-[0.16em]"
+                  style={{ background: 'var(--color-champagne)', color: '#1C1917' }}
                 >
                   Sale
+                </span>
+              )}
+              {lowStock && !product.isSale && (
+                <span
+                  className="px-3 py-1 text-xs font-semibold uppercase tracking-[0.16em]"
+                  style={{ background: 'rgba(28,25,23,0.85)', color: 'var(--color-champagne)' }}
+                >
+                  Only {product.stock} Left
                 </span>
               )}
             </>
@@ -108,7 +117,7 @@ export default function ProductCard({ product, badge, priority = false }: Produc
           style={{
             background: 'rgba(250,248,245,0.95)',
             backdropFilter: 'blur(8px)',
-            border: '1px solid rgba(0,0,0,0.1)',
+            border: '1px solid rgba(0,0,0,0.08)',
             color: saved ? '#C4A35A' : 'var(--color-charcoal)',
             opacity: saved ? 1 : 0,
           }}
@@ -145,10 +154,10 @@ export default function ProductCard({ product, badge, priority = false }: Produc
             className="absolute inset-x-0 bottom-0 z-10 min-h-[48px] py-3 text-xs font-semibold uppercase tracking-[0.18em] transition-all duration-300 transform translate-y-full group-hover:translate-y-0"
             style={{
               background: added ? 'var(--color-champagne)' : 'var(--color-espresso)',
-              color: added ? 'var(--color-espresso)' : '#F5F1E8',
+              color: added ? '#1C1917' : '#F7F3EC',
             }}
           >
-            {added ? '✓ Added' : 'Quick Add'}
+            {added ? '✓ Added to Bag' : 'Quick Add'}
           </button>
         )}
       </div>
@@ -156,7 +165,7 @@ export default function ProductCard({ product, badge, priority = false }: Produc
       {/* Product info */}
       <div className="flex flex-col pt-4 pb-2">
         <div
-          className="flex items-center justify-between text-xs font-medium uppercase tracking-[0.18em] mb-1.5"
+          className="flex items-center justify-between text-xs font-semibold uppercase tracking-[0.18em] mb-1.5"
           style={{ color: 'var(--color-taupe)' }}
         >
           <span>{product.category}</span>

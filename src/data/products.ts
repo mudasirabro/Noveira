@@ -303,7 +303,46 @@ export const products: Product[] = [
   },
 ];
 
+const STOCK_STORAGE_KEY = 'noveira_stock_overrides';
+
+export function syncStockFromStorage(): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const stored = localStorage.getItem(STOCK_STORAGE_KEY);
+    if (!stored) return;
+    const map = JSON.parse(stored) as Record<number, number>;
+    for (const idStr of Object.keys(map)) {
+      const id = Number(idStr);
+      const prod = products.find((p) => p.id === id);
+      if (prod && typeof map[id] === 'number') {
+        prod.stock = Math.max(0, map[id]);
+      }
+    }
+  } catch {
+    // ignore
+  }
+}
+
+export function updateStock(id: number, newStock: number): Product | undefined {
+  const p = products.find((prod) => prod.id === id);
+  if (p) {
+    p.stock = Math.max(0, newStock);
+    if (typeof window !== 'undefined') {
+      try {
+        const stored = localStorage.getItem(STOCK_STORAGE_KEY);
+        const map = stored ? JSON.parse(stored) : {};
+        map[id] = p.stock;
+        localStorage.setItem(STOCK_STORAGE_KEY, JSON.stringify(map));
+      } catch {
+        // ignore
+      }
+    }
+  }
+  return p;
+}
+
 export function getProductById(id: number): Product | undefined {
+  syncStockFromStorage();
   return products.find((p) => p.id === id);
 }
 
