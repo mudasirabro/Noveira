@@ -45,6 +45,61 @@ export function getSupabaseServerClient(): SupabaseClient | null {
 
 export const supabase = getSupabaseServerClient() || getSupabaseClient();
 
+/**
+ * Uploads a base64 image or file data to the Supabase Storage bucket 'product-images'
+ * and returns the public CDN URL.
+ */
+export async function uploadProductImageToStorage(imageData: string, productName: string): Promise<string> {
+  const client = getSupabaseServerClient();
+  if (!client || !imageData) return imageData;
+
+  // If it's already an HTTP URL (e.g. Unsplash), no need to re-upload unless desired
+  if (imageData.startsWith('http://') || imageData.startsWith('https://')) {
+    return imageData;
+  }
+
+  // Handle Base64 Data URLs (e.g. data:image/png;base64,iVBORw0KGgo...)
+  if (imageData.startsWith('data:image/')) {
+    try {
+      const match = imageData.match(/^data:(image\/[a-zA-Z0-9+.-]+);base64,(.+)$/);
+      if (!match) return imageData;
+
+      const contentType = match[1];
+      const base64Data = match[2];
+      const extension = contentType.split('/')[1]?.split('+')[0] || 'jpg';
+      const buffer = Buffer.from(base64Data, 'base64');
+
+      const sanitizedName = productName.toLowerCase().replace(/[^a-z0-9]/g, '-').replace(/-+/g, '-').slice(0, 30);
+      const fileName = `garment-${sanitizedName}-${Date.now()}.${extension}`;
+
+      const { data, error } = await client.storage
+        .from('product-images')
+        .upload(fileName, buffer, {
+          contentType,
+          cacheControl: '3600',
+          upsert: true,
+        });
+
+      if (error) {
+        console.error('Supabase Storage Upload Error:', error);
+        return imageData; // Fallback to base64 if bucket doesn't exist or policy blocks
+      }
+
+      const { data: publicUrlData } = client.storage
+        .from('product-images')
+        .getPublicUrl(data.path);
+
+      if (publicUrlData?.publicUrl) {
+        return publicUrlData.publicUrl;
+      }
+    } catch (err) {
+      console.error('Failed to upload image to Supabase Storage:', err);
+    }
+  }
+
+  return imageData;
+}
+
 /* ────────────────────────────────────────────────────────────────────────── */
 /* TypeScript Interfaces for Supabase Database Tables                         */
 /* ────────────────────────────────────────────────────────────────────────── */

@@ -9,7 +9,7 @@ import {
   parsePrice,
   formatPrice,
 } from '@/src/data/products';
-import { getSupabaseServerClient } from '@/src/lib/supabase';
+import { getSupabaseServerClient, uploadProductImageToStorage } from '@/src/lib/supabase';
 
 export const dynamic = 'force-dynamic';
 
@@ -68,6 +68,10 @@ export async function POST(request: Request) {
     const formattedPriceStr = price.includes('PKR') ? price : formatPrice(numericPrice);
     const formattedSalePriceStr = salePrice ? (salePrice.includes('PKR') ? salePrice : formatPrice(parsePrice(salePrice))) : undefined;
 
+    // Upload image to Supabase Storage bucket 'product-images' if base64 or file
+    const rawImage = image || 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=600&h=800&fit=crop&q=80';
+    const finalImageUrl = await uploadProductImageToStorage(rawImage, name);
+
     const prodData: Omit<Product, 'id'> = {
       name,
       gender: gender as any,
@@ -75,7 +79,7 @@ export async function POST(request: Request) {
       price: formattedPriceStr,
       salePrice: formattedSalePriceStr,
       isSale: Boolean(salePrice),
-      image: image || 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=600&h=800&fit=crop&q=80',
+      image: finalImageUrl,
       description: description || '',
       stock: Number(stock ?? 10),
       sizes: Array.isArray(sizes) && sizes.length > 0 ? sizes : ['S', 'M', 'L'],
@@ -138,6 +142,11 @@ export async function PUT(request: Request) {
     const formattedPriceStr = price ? (price.includes('PKR') ? price : formatPrice(numericPrice)) : undefined;
     const formattedSalePriceStr = salePrice ? (salePrice.includes('PKR') ? salePrice : formatPrice(parsePrice(salePrice))) : null;
 
+    let finalImageUrl = image;
+    if (image && name) {
+      finalImageUrl = await uploadProductImageToStorage(image, name);
+    }
+
     const updates: Partial<Product> = {};
     if (name) updates.name = name;
     if (gender) updates.gender = gender;
@@ -147,7 +156,7 @@ export async function PUT(request: Request) {
       updates.salePrice = formattedSalePriceStr || undefined;
       updates.isSale = Boolean(formattedSalePriceStr);
     }
-    if (image) updates.image = image;
+    if (finalImageUrl) updates.image = finalImageUrl;
     if (description !== undefined) updates.description = description;
     if (stock !== undefined) updates.stock = Number(stock);
     if (Array.isArray(sizes)) updates.sizes = sizes;
@@ -168,7 +177,7 @@ export async function PUT(request: Request) {
       }
       dbPayload.sale_price = formattedSalePriceStr;
       dbPayload.is_sale = Boolean(formattedSalePriceStr);
-      if (image) dbPayload.image = image;
+      if (finalImageUrl) dbPayload.image = finalImageUrl;
       if (description !== undefined) dbPayload.description = description;
       if (stock !== undefined) dbPayload.stock = Number(stock);
       if (Array.isArray(sizes)) dbPayload.sizes = sizes;
