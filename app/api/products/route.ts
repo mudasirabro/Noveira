@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { products as fallbackProducts, updateStock } from '@/src/data/products';
+import { products as fallbackProducts, updateStock, Product } from '@/src/data/products';
 import { getSupabaseServerClient } from '@/src/lib/supabase';
 
 export const dynamic = 'force-dynamic';
@@ -9,13 +9,30 @@ export async function GET() {
 
   try {
     if (client) {
-      const { data, error } = await client
+      const { data: dbProducts, error } = await client
         .from('products')
         .select('*')
         .order('id', { ascending: true });
 
-      if (!error && data && data.length > 0) {
-        return NextResponse.json({ success: true, source: 'supabase', data });
+      if (!error && dbProducts && dbProducts.length > 0) {
+        const formatted: Product[] = dbProducts.map((p) => ({
+          id: Number(p.id),
+          name: p.name,
+          price: p.price,
+          salePrice: p.sale_price || undefined,
+          image: p.image,
+          isSale: Boolean(p.is_sale),
+          category: p.category,
+          gender: p.gender,
+          rating: Number(p.rating || 5),
+          reviews: Number(p.reviews_count || p.reviews || 0),
+          description: p.description,
+          sizes: p.sizes || ['S', 'M', 'L'],
+          colors: p.colors || ['Default'],
+          stock: Number(p.stock),
+        }));
+
+        return NextResponse.json({ success: true, source: 'supabase', data: formatted });
       }
     }
 

@@ -64,7 +64,7 @@ export function CartProvider({ children }: { children: React.ReactNode }) {
   }, [cartItems, hydrated]);
 
   const cartTotal = useMemo(
-    () => cartItems.reduce((sum, item) => sum + parsePrice(item.price) * item.quantity, 0),
+    () => cartItems.reduce((sum, item) => sum + parsePrice(item.salePrice || item.price) * item.quantity, 0),
     [cartItems]
   );
 

@@ -6,18 +6,16 @@ This document contains all required information, exact table names, column speci
 
 ## 📋 Required Table Names & Schema Overview
 
-To complete your manual setup in the Supabase Dashboard, create the following **4 Core Database Tables**:
+To complete your setup in the Supabase Dashboard, create the following **4 Core Database Tables**:
 
-1. **`products`** — Store garment catalogue, pricing, and live inventory levels.
+1. **`products`** — Store garment catalogue (all 18 items), pricing, and live inventory levels.
 2. **`orders`** — Store customer checkout orders, shipping information, and order status.
 3. **`order_items`** — Store itemized line items associated with each customer order.
 4. **`newsletter_subscribers`** — Store customer email subscriptions for the Private Access list.
 
 ---
 
-## ⚡ Quick One-Click Setup (SQL Script)
-
-Instead of creating tables manually line-by-line, you can create all tables and indexes automatically:
+## ⚡ Complete Setup (SQL Script for All 18 Products & RLS Policies)
 
 1. Log into your [Supabase Dashboard](https://supabase.com/dashboard).
 2. Select your **Noveira** project.
@@ -82,44 +80,58 @@ CREATE TABLE IF NOT EXISTS public.newsletter_subscribers (
     subscribed_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- ─── SEED PRODUCTS CATALOGUE DATA ─────────────────────────────────────
+-- ─── 5. ENABLE RLS & ADD PUBLIC ACCESSIBLE POLICIES ────────────────────
+ALTER TABLE public.orders ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.order_items ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.products ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.newsletter_subscribers ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS "Allow public insert on orders" ON public.orders;
+DROP POLICY IF EXISTS "Allow public select on orders" ON public.orders;
+DROP POLICY IF EXISTS "Allow public update on orders" ON public.orders;
+DROP POLICY IF EXISTS "Allow public insert on order_items" ON public.order_items;
+DROP POLICY IF EXISTS "Allow public select on order_items" ON public.order_items;
+DROP POLICY IF EXISTS "Allow public select on products" ON public.products;
+DROP POLICY IF EXISTS "Allow public update on products" ON public.products;
+DROP POLICY IF EXISTS "Allow public insert on newsletter_subscribers" ON public.newsletter_subscribers;
+
+CREATE POLICY "Allow public insert on orders" ON public.orders FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public select on orders" ON public.orders FOR SELECT USING (true);
+CREATE POLICY "Allow public update on orders" ON public.orders FOR UPDATE USING (true);
+CREATE POLICY "Allow public insert on order_items" ON public.order_items FOR INSERT WITH CHECK (true);
+CREATE POLICY "Allow public select on order_items" ON public.order_items FOR SELECT USING (true);
+CREATE POLICY "Allow public select on products" ON public.products FOR SELECT USING (true);
+CREATE POLICY "Allow public update on products" ON public.products FOR UPDATE USING (true);
+CREATE POLICY "Allow public insert on newsletter_subscribers" ON public.newsletter_subscribers FOR INSERT WITH CHECK (true);
+
+-- ─── SEED ALL 18 PRODUCTS CATALOGUE DATA ──────────────────────────────
+TRUNCATE TABLE public.products RESTART IDENTITY CASCADE;
+
 INSERT INTO public.products (name, gender, category, price, price_num, sale_price, is_sale, image, description, stock, sizes, colors, rating, reviews_count) VALUES
-('Silk Trench Coat', 'Women', 'Outerwear', 'PKR 65,000', 65000, 'PKR 52,000', true, 'https://images.unsplash.com/photo-1544441893-675973e31985?w=900&h=1200&fit=crop&q=85', 'Double-breasted silk-blend trench with belted waist and custom horn buttons.', 8, ARRAY['XS','S','M','L'], ARRAY['Champagne','Espresso'], 4.9, 14),
-('Cashmere Wrap Dress', 'Women', 'Dresses', 'PKR 48,000', 48000, NULL, false, 'https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=900&h=1200&fit=crop&q=85', 'Pure Mongolian cashmere wrap dress with fluid drape and ribbed cuffs.', 12, ARRAY['S','M','L'], ARRAY['Ivory','Charcoal'], 5.0, 22),
-('Structured Wool Blazer', 'Women', 'Blazers', 'PKR 58,000', 58000, 'PKR 46,000', true, 'https://images.unsplash.com/photo-1591047139829-d91aecb6caea?w=900&h=1200&fit=crop&q=85', 'Tailored Italian wool blazer with structured shoulders and silk lining.', 5, ARRAY['S','M','L','XL'], ARRAY['Espresso'], 4.8, 9),
-('Double-Breasted Overcoat', 'Men', 'Suits', 'PKR 85,000', 85000, NULL, false, 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=900&h=1200&fit=crop&q=85', 'Heavyweight cashmere-wool blend overcoat with hand-stitched lapels.', 4, ARRAY['48R','50R','52R'], ARRAY['Midnight','Camel'], 4.9, 18),
-('Merino Polo Sweater', 'Men', 'Knitwear', 'PKR 32,000', 32000, 'PKR 25,000', true, 'https://images.unsplash.com/photo-1617137984095-74e4e5e3613f?w=900&h=1200&fit=crop&q=85', 'Fine-gauge merino wool polo with mother-of-pearl buttons.', 15, ARRAY['S','M','L','XL'], ARRAY['Taupe','Black'], 4.7, 11),
-('Silk Velvet Evening Gown', 'Women', 'Evening', 'PKR 92,000', 92000, NULL, false, 'https://images.unsplash.com/photo-1566174053879-31528523f8ae?w=900&h=1200&fit=crop&q=85', 'Floor-length silk velvet dress with open back and concealed side zip.', 3, ARRAY['XS','S','M'], ARRAY['Emerald','Black'], 5.0, 31),
-('Mini Cashmere Knit Set', 'Children', 'Knitwear', 'PKR 28,000', 28000, NULL, false, 'https://images.unsplash.com/photo-1519238263530-99bdd11df2ea?w=900&h=1200&fit=crop&q=85', 'Ultra-soft organic cashmere sweater and trousers set for toddlers.', 10, ARRAY['2Y','4Y','6Y'], ARRAY['Cream','Soft Taupe'], 4.9, 8),
-('Tailored Linen Trouser', 'Men', 'Trousers', 'PKR 36,000', 36000, 'PKR 29,000', true, 'https://images.unsplash.com/photo-1479064555552-3ef4979f8908?w=900&h=1200&fit=crop&q=85', 'Relaxed-fit pure linen trousers with side adjusters and double pleats.', 7, ARRAY['30','32','34','36'], ARRAY['Sand','Navy'], 4.6, 16);
+('Silk Blend Wrap Blouse', 'Women', 'Blouses', 'Rs.12,900.00 PKR', 12900, 'Rs.8,900.00 PKR', true, 'https://images.unsplash.com/photo-1485462537746-965f33f7f6a7?w=600&h=800&fit=crop', 'A fluid silk-blend wrap blouse with a softly draped neckline and covered buttons.', 15, ARRAY['XS','S','M','L'], ARRAY['Ivory','Onyx'], 4.5, 12),
+('Tailored Wool Trouser', 'Women', 'Trousers', 'Rs.16,400.00 PKR', 16400, 'Rs.11,900.00 PKR', true, 'https://images.unsplash.com/photo-1509631179647-0177331693ae?w=600&h=800&fit=crop', 'High-rise wool trousers with a pressed crease and a clean, elongating line.', 8, ARRAY['XS','S','M','L'], ARRAY['Charcoal','Camel'], 4.2, 8),
+('Chiffon Evening Gown', 'Women', 'Evening', 'Rs.34,000.00 PKR', 34000, NULL, false, 'https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=600&h=800&fit=crop&q=80', 'A floor-length chiffon gown with a bias-cut skirt and hand-finished hem.', 20, ARRAY['S','M','L'], ARRAY['Champagne','Deep Plum'], 4.8, 15),
+('Cashmere Boat-Neck Knit', 'Women', 'Knitwear', 'Rs.19,800.00 PKR', 19800, 'Rs.14,300.00 PKR', true, 'https://images.unsplash.com/photo-1434389677669-e08b4cac3105?w=600&h=800&fit=crop', 'Pure cashmere knit with a wide boat neckline and ribbed cuffs.', 5, ARRAY['XS','S','M','L'], ARRAY['Oat','Slate'], 4.0, 6),
+('Pleated Midi Skirt', 'Women', 'Skirts', 'Rs.14,600.00 PKR', 14600, 'Rs.9,800.00 PKR', true, 'https://images.unsplash.com/photo-1572804013309-59a88b7e92f1?w=600&h=800&fit=crop', 'Knife-pleated midi skirt in a lightweight satin with a concealed zip.', 10, ARRAY['XS','S','M','L'], ARRAY['Pearl','Sage'], 4.4, 9),
+('Structured Crepe Blazer', 'Women', 'Blazers', 'Rs.28,900.00 PKR', 28900, NULL, false, 'https://images.unsplash.com/photo-1548624313-0396a93cc90f?w=600&h=800&fit=crop', 'A single-breasted crepe blazer with sculpted shoulders and a nipped waist.', 25, ARRAY['XS','S','M','L'], ARRAY['Onyx','Ivory'], 4.9, 20),
+('Quilted Leather Shoulder Bag', 'Women', 'Accessories', 'Rs.31,000.00 PKR', 31000, NULL, false, 'https://images.unsplash.com/photo-1548036328-c9fa89d128fa?w=600&h=800&fit=crop', 'Diamond-quilted calf leather with an antique-gold chain strap.', 30, ARRAY['One Size'], ARRAY['Black','Cognac'], 4.3, 7),
+('Satin Wrap Dress', 'Women', 'Dresses', 'Rs.22,400.00 PKR', 22400, NULL, false, 'https://images.unsplash.com/photo-1539008835657-9e8e9680c956?w=600&h=800&fit=crop', 'Fluid satin wrap dress with a V-neckline and adjustable tie waist.', 14, ARRAY['XS','S','M','L','XL'], ARRAY['Midnight','Blush','Emerald'], 4.6, 18),
+('Merino Wool Rollneck', 'Men', 'Knitwear', 'Rs.18,500.00 PKR', 18500, NULL, false, 'https://images.unsplash.com/photo-1519058082700-08a0b56da9b4?w=600&h=800&fit=crop', 'Fine-gauge merino rollneck in a relaxed, modern silhouette.', 22, ARRAY['S','M','L','XL','XXL'], ARRAY['Navy','Charcoal','Camel'], 4.7, 14),
+('Slim-Cut Suit', 'Men', 'Suits', 'Rs.48,000.00 PKR', 48000, 'Rs.36,000.00 PKR', true, 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=600&h=800&fit=crop&q=80', 'A slim two-piece suit in Italian wool blend with a half-canvas construction.', 8, ARRAY['48','50','52','54','56'], ARRAY['Midnight Navy','Charcoal'], 4.8, 11),
+('Oxford Button-Down Shirt', 'Men', 'Shirts', 'Rs.9,800.00 PKR', 9800, NULL, false, 'https://images.unsplash.com/photo-1602810316498-ab67cf68c8e1?w=600&h=800&fit=crop', 'Crisp Oxford cloth shirt with a button-down collar and barrel cuffs.', 40, ARRAY['S','M','L','XL','XXL'], ARRAY['White','Light Blue','Pale Pink'], 4.4, 22),
+('Tapered Chino Trouser', 'Men', 'Trousers', 'Rs.12,500.00 PKR', 12500, 'Rs.8,900.00 PKR', true, 'https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?w=600&h=800&fit=crop', 'Slim-tapered chino in stretch-cotton with a clean finish.', 18, ARRAY['28','30','32','34','36'], ARRAY['Stone','Olive','Navy'], 4.3, 16),
+('Leather Derby Shoe', 'Men', 'Footwear', 'Rs.26,000.00 PKR', 26000, NULL, false, 'https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=600&h=800&fit=crop&q=80', 'Full-grain calf leather derby on a leather sole with Goodyear welt.', 12, ARRAY['40','41','42','43','44','45'], ARRAY['Tan','Black'], 4.6, 8),
+('Cashmere V-Neck Sweater', 'Men', 'Knitwear', 'Rs.22,000.00 PKR', 22000, NULL, false, 'https://images.unsplash.com/photo-1501196354995-cbb51c65aaea?w=600&h=800&fit=crop', 'Two-ply cashmere V-neck with a classic fit and ribbed trims.', 15, ARRAY['S','M','L','XL'], ARRAY['Camel','Charcoal','Burgundy'], 4.5, 9),
+('Mini Linen Playsuit', 'Children', 'Playsuits', 'Rs.5,800.00 PKR', 5800, NULL, false, 'https://images.unsplash.com/photo-1519238263530-99bdd11df2ea?w=600&h=800&fit=crop&q=80', 'Breathable linen playsuit with snap buttons and adjustable straps.', 20, ARRAY['2Y','3Y','4Y','5Y','6Y'], ARRAY['Pale Blue','Sand','Mint'], 4.8, 13),
+('Kids Merino Cardigan', 'Children', 'Knitwear', 'Rs.7,200.00 PKR', 7200, 'Rs.5,400.00 PKR', true, 'https://images.unsplash.com/photo-1471286174890-9c112ffca5b4?w=600&h=800&fit=crop', 'Soft merino cardigan with wooden buttons and contrast ribbing.', 16, ARRAY['2Y','4Y','6Y','8Y','10Y'], ARRAY['Cream','Dusty Rose','Sky'], 4.6, 7),
+('Junior Tailored Trouser', 'Children', 'Trousers', 'Rs.6,500.00 PKR', 6500, NULL, false, 'https://images.unsplash.com/photo-1514090458221-65bb69cf63e6?w=600&h=800&fit=crop', 'Neatly tailored twill trousers with an elasticated waist for comfort.', 12, ARRAY['4Y','6Y','8Y','10Y','12Y'], ARRAY['Navy','Grey'], 4.4, 5),
+('Girls Tulle Party Dress', 'Children', 'Dresses', 'Rs.9,800.00 PKR', 9800, 'Rs.7,200.00 PKR', true, 'https://images.unsplash.com/photo-1518831959646-742c3a14ebf7?w=600&h=800&fit=crop', 'Layered tulle dress with a satin bodice and full skirt for special occasions.', 9, ARRAY['3Y','4Y','5Y','6Y','7Y','8Y'], ARRAY['Blush','Ivory','Lilac'], 4.9, 19);
 ```
 
 ---
 
-## 🛠️ API Routes Integrated
+## 🔍 Live Diagnostic API Endpoint
 
-The codebase has been fully equipped with API endpoints that sync seamlessly with Supabase while keeping zero-downtime local fallbacks:
+You can test your live connection by opening this URL in your browser after deploying to Vercel:
 
-| API Route | Supported Methods | Description |
-| :--- | :--- | :--- |
-| `/api/products` | `GET`, `PATCH` | Fetch catalog & update product stock quantity |
-| `/api/orders` | `GET`, `POST`, `PATCH` | Fetch all orders, place new checkout orders, update order status |
-| `/api/newsletter` | `POST` | Subscribe emails to the Private Access list |
-
----
-
-## 🔑 Environment Variables Configured
-
-Vercel Marketplace automatically injects these into your project. If testing locally in `.env.local`, ensure these keys are present:
-
-```env
-NEXT_PUBLIC_SUPABASE_URL=https://your-project.supabase.co
-NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
-SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
-```
-
----
-
-## ✅ Seamless Fallback Guarantee
-
-If Supabase keys are not set up or temporary database maintenance occurs, **Noveira Atelier** will automatically fallback to local memory and `localStorage` persistence. The store will **never crash** or block customer checkouts.
+`https://your-domain.vercel.app/api/test-supabase`

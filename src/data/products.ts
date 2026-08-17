@@ -354,9 +354,23 @@ export function getGenders(): string[] {
   return ["All", "Women", "Men", "Children"];
 }
 
-/** Parses "Rs.12,900.00 PKR" into 12900. Returns 0 when unparseable. */
-export function parsePrice(value: string): number {
-  const parsed = Number.parseFloat(value.replace(/[^0-9.]/g, ""));
+/** Parses "Rs.12,900.00 PKR" or "PKR 14,300" into numeric 14300. Returns 0 when unparseable. */
+export function parsePrice(value: string | number | undefined | null): number {
+  if (typeof value === 'number') return Number.isNaN(value) ? 0 : value;
+  if (!value) return 0;
+
+  // Remove currency words like "Rs." or "PKR", remove commas, and trim
+  const cleaned = String(value)
+    .replace(/Rs\.?/gi, "")
+    .replace(/PKR/gi, "")
+    .replace(/,/g, "")
+    .trim();
+
+  // Match the actual decimal or integer number
+  const match = cleaned.match(/([0-9]+(?:\.[0-9]+)?)/);
+  if (!match) return 0;
+
+  const parsed = Number.parseFloat(match[1]);
   return Number.isNaN(parsed) ? 0 : parsed;
 }
 
