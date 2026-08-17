@@ -669,6 +669,7 @@ function ProductFormModal({
   const [salePrice, setSalePrice] = useState(product?.salePrice || '');
   const [stock, setStock] = useState<number>(product?.stock ?? 10);
   const [image, setImage] = useState(product?.image || 'https://images.unsplash.com/photo-1515372039744-b8f02a3ae446?w=600&h=800&fit=crop&q=80');
+  const [imageMode, setImageMode] = useState<'upload' | 'url'>('upload');
   const [description, setDescription] = useState(product?.description || '');
   const [selectedSizes, setSelectedSizes] = useState<string[]>(product?.sizes || ['S', 'M', 'L']);
   const [colorsText, setColorsText] = useState(product?.colors?.join(', ') || 'Ivory, Onyx');
@@ -707,18 +708,23 @@ function ProductFormModal({
     );
   };
 
+  useEffect(() => {
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = 'unset';
+    };
+  }, []);
+
   return (
     <div
       role="dialog"
       aria-modal="true"
       className="fixed inset-0 z-50 flex items-center justify-center p-4 animate-fade-in"
       style={{ background: 'rgba(14,12,10,0.85)', backdropFilter: 'blur(8px)' }}
-      onClick={onClose}
     >
       <div
         className="max-h-[92vh] w-full max-w-2xl overflow-y-auto p-8 animate-scale-in"
         style={{ background: S.surf, border: `1px solid ${S.border}`, boxShadow: '0 32px 80px rgba(0,0,0,0.8)' }}
-        onClick={(e) => e.stopPropagation()}
       >
         <div className="flex items-center justify-between pb-6 mb-6" style={{ borderBottom: `1px solid ${S.border}` }}>
           <div>
@@ -818,26 +824,97 @@ function ProductFormModal({
             </div>
           </div>
 
-          {/* Photo Image URL & Live Preview */}
+          {/* Photo Image Field (Upload from Device OR URL) */}
           <div>
-            <label className="block mb-2 text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: S.muted }}>Photo Image URL</label>
-            <input
-              type="url"
-              required
-              value={image}
-              onChange={(e) => setImage(e.target.value)}
-              placeholder="https://images.unsplash.com/..."
-              className="input-dark"
-            />
+            <div className="flex items-center justify-between mb-2">
+              <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: S.muted }}>Garment Photo Image</label>
+              <div className="flex gap-2">
+                <button
+                  type="button"
+                  onClick={() => setImageMode('upload')}
+                  className="px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.08em] rounded border transition-colors"
+                  style={{
+                    background: imageMode === 'upload' ? S.champ : S.elev,
+                    color: imageMode === 'upload' ? '#1E1916' : S.secondary,
+                    borderColor: imageMode === 'upload' ? S.champ : S.border,
+                  }}
+                >
+                  📁 Upload File
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setImageMode('url')}
+                  className="px-2.5 py-1 text-xs font-semibold uppercase tracking-[0.08em] rounded border transition-colors"
+                  style={{
+                    background: imageMode === 'url' ? S.champ : S.elev,
+                    color: imageMode === 'url' ? '#1E1916' : S.secondary,
+                    borderColor: imageMode === 'url' ? S.champ : S.border,
+                  }}
+                >
+                  🔗 Image URL
+                </button>
+              </div>
+            </div>
+
+            {imageMode === 'upload' ? (
+              <div>
+                <label className="flex flex-col items-center justify-center p-6 border-2 border-dashed rounded cursor-pointer transition-colors hover:border-[var(--color-champagne)]" style={{ background: S.elev, borderColor: S.border }}>
+                  <svg className="h-8 w-8 mb-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: S.champ }}>
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                  </svg>
+                  <p className="text-sm font-semibold" style={{ color: S.primary }}>Click to Choose Image File from Device</p>
+                  <p className="mt-1 text-xs" style={{ color: S.muted }}>PNG, JPG, WEBP, or GIF supported</p>
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (file) {
+                        const reader = new FileReader();
+                        reader.onloadend = () => {
+                          if (typeof reader.result === 'string') {
+                            setImage(reader.result);
+                          }
+                        };
+                        reader.readAsDataURL(file);
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+            ) : (
+              <input
+                type="url"
+                required={!image}
+                value={image}
+                onChange={(e) => setImage(e.target.value)}
+                placeholder="https://images.unsplash.com/..."
+                className="input-dark"
+              />
+            )}
+
             {image && (
-              <div className="mt-3 flex items-center gap-3 p-3 rounded" style={{ background: S.elev, border: `1px solid ${S.border}` }}>
-                <div className="relative h-14 w-12 flex-shrink-0 overflow-hidden rounded">
-                  <Image src={image} alt="Preview" fill className="object-cover" />
+              <div className="mt-3 flex items-center justify-between p-3 rounded" style={{ background: S.elev, border: `1px solid ${S.border}` }}>
+                <div className="flex items-center gap-3">
+                  <div className="relative h-14 w-12 flex-shrink-0 overflow-hidden rounded">
+                    {/* eslint-disable-next-html-element-suppression */}
+                    <img src={image} alt="Preview" className="h-full w-full object-cover" />
+                  </div>
+                  <div>
+                    <p className="text-xs font-semibold" style={{ color: S.champ }}>Image Ready</p>
+                    <p className="text-xs truncate max-w-xs" style={{ color: S.muted }}>
+                      {image.startsWith('data:') ? 'Local Image File Loaded' : image}
+                    </p>
+                  </div>
                 </div>
-                <div>
-                  <p className="text-xs font-semibold" style={{ color: S.champ }}>Image Preview</p>
-                  <p className="text-xs truncate max-w-xs" style={{ color: S.muted }}>{image}</p>
-                </div>
+                <button
+                  type="button"
+                  onClick={() => setImage('')}
+                  className="px-2.5 py-1 text-xs font-semibold uppercase text-[#E07070] hover:underline"
+                >
+                  Remove
+                </button>
               </div>
             )}
           </div>
