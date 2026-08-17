@@ -7,24 +7,27 @@ export default function Footer() {
   const [subscribed, setSubscribed] = useState(false);
 
   return (
-    <footer style={{ background: 'var(--color-bg-darker)', color: 'var(--color-cream)' }}>
-      {/* Top section */}
-      <div className="mx-auto max-w-7xl px-6 md:px-10 pt-20 pb-14">
-        <div className="grid gap-12 md:grid-cols-5 md:gap-8">
+    <footer style={{ background: 'var(--color-bg-dark)', color: 'var(--color-text-primary)' }}>
+      {/* Top Divider */}
+      <div style={{ height: '1px', background: 'var(--color-admin-border)' }} />
 
-          {/* Brand */}
-          <div className="md:col-span-2 space-y-6">
-            <Link href="/" className="inline-block group">
+      {/* Main Footer Container */}
+      <div className="mx-auto max-w-7xl px-6 md:px-12 pt-20 pb-16">
+        <div className="grid gap-12 lg:grid-cols-5 md:gap-10">
+
+          {/* Brand Column (2 cols) */}
+          <div className="lg:col-span-2 space-y-6">
+            <Link href="/" className="inline-block group animate-scale-in">
               <div className="flex flex-col items-start">
                 <span
                   className="font-heading text-3xl tracking-[0.28em] transition-opacity group-hover:opacity-75"
-                  style={{ color: 'var(--color-ivory)', fontWeight: 400 }}
+                  style={{ color: '#F7F3EC', fontWeight: 500 }}
                 >
                   NOVEIRA
                 </span>
                 <span
-                  className="text-[7px] uppercase tracking-[0.5em] mt-0.5"
-                  style={{ color: 'rgba(217,208,190,0.5)', letterSpacing: '0.45em' }}
+                  className="text-[9px] uppercase tracking-[0.45em] mt-1 font-semibold"
+                  style={{ color: 'var(--color-champagne)' }}
                 >
                   Atelier
                 </span>
@@ -32,20 +35,20 @@ export default function Footer() {
             </Link>
 
             <p
-              className="text-sm leading-relaxed max-w-xs"
-              style={{ color: 'rgba(217,208,190,0.55)' }}
+              className="text-base leading-relaxed max-w-sm"
+              style={{ color: 'var(--color-text-secondary)' }}
             >
               A modern luxury fashion house creating timeless garments for Women, Men, and Children.
-              Crafted with fine cashmere, silk, and structured wools.
+              Crafted with Italian cashmere, silk, and structured wools.
             </p>
 
-            <div className="flex items-center gap-5">
+            <div className="flex items-center gap-6 pt-2">
               {['Instagram', 'Pinterest', 'X', 'Facebook'].map((social) => (
                 <a
                   key={social}
                   href="#"
-                  className="text-[10px] uppercase tracking-[0.18em] transition-opacity hover:opacity-60"
-                  style={{ color: 'rgba(217,208,190,0.5)' }}
+                  className="text-xs uppercase tracking-[0.2em] font-medium transition-colors hover:text-[var(--color-champagne)]"
+                  style={{ color: 'var(--color-text-muted)' }}
                 >
                   {social}
                 </a>
@@ -56,24 +59,24 @@ export default function Footer() {
           {/* Collections */}
           <div>
             <h4
-              className="mb-6 text-[10px] uppercase tracking-[0.28em]"
-              style={{ color: 'rgba(217,208,190,0.45)' }}
+              className="mb-6 text-xs uppercase tracking-[0.26em] font-semibold"
+              style={{ color: 'var(--color-champagne)' }}
             >
               Collections
             </h4>
-            <ul className="space-y-3">
+            <ul className="space-y-3.5">
               {[
                 { label: "Women's Collection", href: "/products?gender=Women" },
-                { label: "Men's Collection", href: "/products?gender=Men" },
+                { label: "Men's Tailoring", href: "/products?gender=Men" },
                 { label: "Children's Atelier", href: "/products?gender=Children" },
                 { label: "Archive & Sale", href: "/products?sale=true" },
-                { label: "All Pieces", href: "/products" },
+                { label: "Full Collection", href: "/products" },
               ].map(({ label, href }) => (
                 <li key={label}>
                   <Link
                     href={href}
-                    className="text-sm transition-opacity hover:opacity-60"
-                    style={{ color: 'rgba(217,208,190,0.6)' }}
+                    className="text-sm transition-colors hover:text-[var(--color-champagne)]"
+                    style={{ color: 'var(--color-text-secondary)' }}
                   >
                     {label}
                   </Link>
@@ -85,50 +88,61 @@ export default function Footer() {
           {/* Atelier Care */}
           <div>
             <h4
-              className="mb-6 text-[10px] uppercase tracking-[0.28em]"
-              style={{ color: 'rgba(217,208,190,0.45)' }}
+              className="mb-6 text-xs uppercase tracking-[0.26em] font-semibold"
+              style={{ color: 'var(--color-champagne)' }}
             >
               Atelier Care
             </h4>
-            <ul className="space-y-3">
+            <ul className="space-y-3.5">
               {[
                 'Complimentary Shipping',
                 'Returns & Exchanges',
                 'Size & Fit Guide',
                 'Bespoke Tailoring',
-                'Gift Packaging',
+                'Admin Portal',
               ].map((item) => (
                 <li key={item}>
-                  <a
-                    href="#"
-                    className="text-sm transition-opacity hover:opacity-60"
-                    style={{ color: 'rgba(217,208,190,0.6)' }}
-                  >
-                    {item}
-                  </a>
+                  {item === 'Admin Portal' ? (
+                    <Link
+                      href="/admin/login"
+                      className="text-sm font-semibold transition-colors hover:text-[var(--color-champagne)]"
+                      style={{ color: 'var(--color-champagne)' }}
+                    >
+                      {item}
+                    </Link>
+                  ) : (
+                    <a
+                      href="#"
+                      className="text-sm transition-colors hover:text-[var(--color-champagne)]"
+                      style={{ color: 'var(--color-text-secondary)' }}
+                    >
+                      {item}
+                    </a>
+                  )}
                 </li>
               ))}
             </ul>
           </div>
 
-          {/* Newsletter */}
+          {/* Newsletter Column */}
           <div>
             <h4
-              className="mb-6 text-[10px] uppercase tracking-[0.28em]"
-              style={{ color: 'rgba(217,208,190,0.45)' }}
+              className="mb-6 text-xs uppercase tracking-[0.26em] font-semibold flex items-center gap-2"
+              style={{ color: 'var(--color-champagne)' }}
             >
-              Private Access
+              <span className="h-2 w-2 rounded-full bg-[var(--color-champagne)] animate-pulse" />
+              Early Access
             </h4>
             <p
               className="text-sm leading-relaxed mb-5"
-              style={{ color: 'rgba(217,208,190,0.55)' }}
+              style={{ color: 'var(--color-text-secondary)' }}
             >
-              Early access to seasonal drops and exclusive bespoke previews.
+              Receive early invitations to private sales, seasonal lookbooks, and limited drops.
             </p>
 
             {!subscribed ? (
               <form
-                className="space-y-2.5"
+                className="space-y-3"
                 onSubmit={(e) => {
                   e.preventDefault();
                   setSubscribed(true);
@@ -137,57 +151,40 @@ export default function Footer() {
                 <input
                   type="email"
                   required
-                  placeholder="Your email"
-                  className="w-full px-4 py-3 text-xs focus:outline-none transition-colors"
-                  style={{
-                    background: 'rgba(255,255,255,0.06)',
-                    border: '1px solid rgba(217,208,190,0.15)',
-                    color: 'var(--color-ivory)',
-                  }}
-                  onFocus={(e) => (e.target.style.borderColor = 'rgba(217,208,190,0.4)')}
-                  onBlur={(e) => (e.target.style.borderColor = 'rgba(217,208,190,0.15)')}
+                  placeholder="Enter your email address"
+                  className="input-dark text-xs"
+                  style={{ minHeight: '48px', padding: '0.75rem 1rem' }}
                 />
                 <button
                   type="submit"
-                  className="w-full py-3 text-[10px] font-medium uppercase tracking-[0.2em] transition-all duration-300"
-                  style={{
-                    background: 'rgba(196,163,90,0.15)',
-                    border: '1px solid rgba(196,163,90,0.4)',
-                    color: 'var(--color-champagne)',
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.background = 'var(--color-champagne)';
-                    e.currentTarget.style.color = 'var(--color-espresso)';
-                    e.currentTarget.style.borderColor = 'var(--color-champagne)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.background = 'rgba(196,163,90,0.15)';
-                    e.currentTarget.style.color = 'var(--color-champagne)';
-                    e.currentTarget.style.borderColor = 'rgba(196,163,90,0.4)';
-                  }}
+                  className="w-full btn-admin-primary"
+                  style={{ minHeight: '48px', fontSize: '0.8125rem' }}
                 >
-                  Request Access
+                  Request Early Access
                 </button>
               </form>
             ) : (
-              <p className="text-sm animate-fade-in" style={{ color: 'var(--color-champagne)' }}>
-                Welcome to the Noveira Private List.
-              </p>
+              <div className="p-4 rounded border border-gold/30 bg-gold/10 animate-fade-in">
+                <p className="text-sm font-semibold" style={{ color: 'var(--color-champagne)' }}>
+                  ✓ Welcome to the Noveira Private List.
+                </p>
+              </div>
             )}
 
-            <p className="mt-4 text-[10px]" style={{ color: 'rgba(217,208,190,0.3)', letterSpacing: '0.12em' }}>
+            <p className="mt-4 text-xs font-mono" style={{ color: 'var(--color-text-muted)' }}>
               concierge@noveira.com
             </p>
           </div>
+
         </div>
       </div>
 
       {/* Fine divider */}
-      <div style={{ height: '1px', background: 'rgba(217,208,190,0.08)' }} />
+      <div style={{ height: '1px', background: 'var(--color-admin-border)' }} />
 
       {/* Bottom bar */}
-      <div className="mx-auto max-w-7xl px-6 md:px-10 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
-        <p className="text-[10px] uppercase tracking-[0.18em]" style={{ color: 'rgba(217,208,190,0.3)' }}>
+      <div className="mx-auto max-w-7xl px-6 md:px-12 py-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+        <p className="text-xs uppercase tracking-[0.18em]" style={{ color: 'var(--color-text-muted)' }}>
           © {new Date().getFullYear()} Noveira Atelier. All Rights Reserved.
         </p>
         <div className="flex items-center gap-6">
@@ -195,8 +192,8 @@ export default function Footer() {
             <a
               key={item}
               href="#"
-              className="text-[10px] uppercase tracking-[0.18em] transition-opacity hover:opacity-60"
-              style={{ color: 'rgba(217,208,190,0.35)' }}
+              className="text-xs uppercase tracking-[0.18em] transition-colors hover:text-[var(--color-champagne)]"
+              style={{ color: 'var(--color-text-muted)' }}
             >
               {item}
             </a>

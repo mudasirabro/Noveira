@@ -3,6 +3,7 @@ import { Cormorant_Garamond, Inter } from "next/font/google";
 import "./globals.css";
 import Header from "@/src/components/Header";
 import Footer from "@/src/components/Footer";
+import CustomCursor from "@/src/components/CustomCursor";
 import { CartProvider } from "@/src/context/CartContext";
 import { RecentlyViewedProvider } from "@/src/context/RecentlyViewedContext";
 import { WishlistProvider } from "@/src/context/WishlistContext";
@@ -92,11 +93,12 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`${heading.variable} ${body.variable}`}>
-      <body className="antialiased">
+      <body className="antialiased selection:bg-[var(--color-champagne)] selection:text-[#1C1917]">
         <CartProvider>
           <WishlistProvider>
             <RecentlyViewedProvider>
               <SearchProvider>
+                <CustomCursor />
                 <Header />
                 {children}
                 <Footer />

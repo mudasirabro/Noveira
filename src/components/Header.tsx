@@ -83,7 +83,11 @@ export default function Header() {
   }, []);
 
   useEffect(() => {
-    document.body.style.overflow = isMobileOpen ? 'hidden' : '';
+    if (isMobileOpen) {
+      document.body.style.overflow = 'hidden';
+    } else {
+      document.body.style.overflow = '';
+    }
     return () => { document.body.style.overflow = ''; };
   }, [isMobileOpen]);
 
@@ -96,18 +100,18 @@ export default function Header() {
             : 'bg-[#FAF8F5]/98 backdrop-blur-sm'
         }`}
       >
-        {/* Announcement bar */}
+        {/* Top Announcement Bar */}
         <div
-          className="text-center py-3 text-xs sm:text-sm uppercase tracking-[0.2em] font-medium"
+          className="text-center py-2.5 text-xs sm:text-sm uppercase tracking-[0.22em] font-semibold"
           style={{ background: 'var(--color-bg-dark)', color: 'var(--color-text-primary)' }}
         >
           Complimentary Delivery on Orders Above PKR 5,000
         </div>
 
-        <div ref={navRef} className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 md:px-10">
+        <div ref={navRef} className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 md:px-12 relative">
 
-          {/* Logo */}
-          <Link href="/" aria-label="Noveira home" className="flex-shrink-0 group">
+          {/* Logo with fade + scale on load */}
+          <Link href="/" aria-label="Noveira home" className="flex-shrink-0 group animate-scale-in">
             <div className="flex flex-col items-start leading-none">
               <span
                 className="font-heading text-3xl tracking-[0.28em] transition-opacity duration-300 group-hover:opacity-75"
@@ -116,7 +120,7 @@ export default function Header() {
                 NOVEIRA
               </span>
               <span
-                className="text-[9px] uppercase tracking-[0.45em] mt-1 font-medium"
+                className="text-[9px] uppercase tracking-[0.45em] mt-1 font-semibold"
                 style={{ color: 'var(--color-taupe)' }}
               >
                 Atelier
@@ -124,11 +128,11 @@ export default function Header() {
             </div>
           </Link>
 
-          {/* Desktop nav — centered */}
-          <nav className="hidden absolute left-1/2 -translate-x-1/2 items-center gap-9 md:flex" aria-label="Main navigation">
-            {NAV.map((item) =>
+          {/* Desktop nav — centered with staggered slide-in */}
+          <nav className="hidden absolute left-1/2 -translate-x-1/2 items-center gap-10 md:flex" aria-label="Main navigation">
+            {NAV.map((item, idx) =>
               item.items ? (
-                <div key={item.label} className="relative">
+                <div key={item.label} className="relative animate-slide-down" style={{ animationDelay: `${idx * 0.08}s` }}>
                   <button
                     type="button"
                     onMouseEnter={() => setOpenMenu(item.label)}
@@ -149,11 +153,11 @@ export default function Header() {
                   {/* Dropdown */}
                   {openMenu === item.label && (
                     <div
-                      className="absolute left-1/2 -translate-x-1/2 top-full mt-3 w-56 py-3 animate-slide-down"
+                      className="absolute left-1/2 -translate-x-1/2 top-full mt-3 w-56 py-3 animate-slide-down rounded-sm"
                       style={{
                         background: 'var(--color-bg)',
                         border: '1.5px solid var(--color-parchment)',
-                        boxShadow: '0 16px 48px rgba(0,0,0,0.1)',
+                        boxShadow: '0 16px 48px rgba(0,0,0,0.12)',
                       }}
                       onMouseEnter={() => setOpenMenu(item.label)}
                       onMouseLeave={() => setOpenMenu(null)}
@@ -182,8 +186,8 @@ export default function Header() {
                 <Link
                   key={item.label}
                   href={item.href!}
-                  className="nav-link text-sm uppercase tracking-[0.18em] transition-colors duration-200 py-1"
-                  style={{ color: 'var(--color-espresso)', fontWeight: 500 }}
+                  className="nav-link text-sm uppercase tracking-[0.18em] transition-colors duration-200 py-1 animate-slide-down"
+                  style={{ color: 'var(--color-espresso)', fontWeight: 500, animationDelay: `${idx * 0.08}s` }}
                 >
                   {item.label}
                 </Link>
@@ -191,7 +195,7 @@ export default function Header() {
             )}
           </nav>
 
-          {/* Icons */}
+          {/* Action Icons */}
           <div className="flex items-center gap-6">
             {/* Search */}
             <Link
@@ -257,7 +261,7 @@ export default function Header() {
               </svg>
             </Link>
 
-            {/* Mobile hamburger */}
+            {/* Mobile hamburger button */}
             <button
               type="button"
               onClick={() => setIsMobileOpen((v) => !v)}
@@ -281,135 +285,138 @@ export default function Header() {
           </div>
         </div>
 
-        {/* Fine divider */}
+        {/* Fine border line */}
         <div style={{ height: '1px', background: 'var(--color-parchment)' }} />
       </header>
 
-      {/* Mobile Full-Screen Menu */}
-      <div
-        className={`mobile-menu-overlay flex flex-col ${isMobileOpen ? 'open' : ''}`}
-        aria-hidden={!isMobileOpen}
-      >
-        {/* Mobile header */}
+      {/* Mobile Full-Screen Drawer Overlay — Renders ONLY when isMobileOpen is true */}
+      {isMobileOpen && (
         <div
-          className="flex items-center justify-between px-6 py-5"
-          style={{ borderBottom: '1.5px solid var(--color-parchment)' }}
+          className="fixed inset-0 z-[100] flex flex-col md:hidden animate-fade-in"
+          style={{ background: 'var(--color-bg)' }}
+          aria-modal="true"
         >
-          <Link href="/" onClick={() => setIsMobileOpen(false)}>
-            <span className="font-heading text-3xl tracking-[0.28em]" style={{ color: 'var(--color-espresso)' }}>
-              NOVEIRA
-            </span>
-          </Link>
-          <button
-            type="button"
-            onClick={() => setIsMobileOpen(false)}
-            className="p-2 transition-opacity hover:opacity-60"
-            aria-label="Close menu"
+          {/* Mobile Header */}
+          <div
+            className="flex items-center justify-between px-6 py-5"
+            style={{ borderBottom: '1.5px solid var(--color-parchment)' }}
           >
-            <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: 'var(--color-espresso)' }}>
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
-
-        {/* Mobile nav links */}
-        <nav className="flex-1 overflow-y-auto px-6 py-8" aria-label="Mobile navigation">
-          <div className="flex flex-col">
-            {NAV.map((item) =>
-              item.items ? (
-                <div key={item.label}>
-                  <button
-                    type="button"
-                    onClick={() => setMobileExpanded(mobileExpanded === item.label ? null : item.label)}
-                    className="flex w-full items-center justify-between py-5 text-left"
-                    style={{ borderBottom: '1px solid var(--color-parchment)' }}
-                  >
-                    <span
-                      className="font-heading text-3xl"
-                      style={{ color: 'var(--color-espresso)' }}
-                    >
-                      {item.label}
-                    </span>
-                    <svg
-                      className={`h-5 w-5 transition-transform duration-300 ${mobileExpanded === item.label ? 'rotate-180' : ''}`}
-                      fill="none" viewBox="0 0 24 24" stroke="currentColor"
-                      style={{ color: 'var(--color-charcoal)' }}
-                    >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
-                    </svg>
-                  </button>
-                  {mobileExpanded === item.label && (
-                    <div className="py-4 pl-4 flex flex-col gap-2 animate-fade-in">
-                      {item.items.map((sub) => (
-                        <Link
-                          key={sub.href}
-                          href={sub.href}
-                          onClick={() => setIsMobileOpen(false)}
-                          className="py-3 text-sm uppercase tracking-[0.16em] font-medium transition-colors hover:opacity-60"
-                          style={{ color: 'var(--color-charcoal)' }}
-                        >
-                          {sub.label}
-                        </Link>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                <Link
-                  key={item.label}
-                  href={item.href!}
-                  onClick={() => setIsMobileOpen(false)}
-                  className="py-5 font-heading text-3xl transition-opacity hover:opacity-60"
-                  style={{ color: 'var(--color-espresso)', borderBottom: '1px solid var(--color-parchment)' }}
-                >
-                  {item.label}
-                </Link>
-              )
-            )}
-            <Link
-              href="/wishlist"
-              onClick={() => setIsMobileOpen(false)}
-              className="py-5 font-heading text-3xl transition-opacity hover:opacity-60"
-              style={{ color: 'var(--color-espresso)', borderBottom: '1px solid var(--color-parchment)' }}
-            >
-              Wishlist{wishlistCount > 0 ? ` (${wishlistCount})` : ''}
+            <Link href="/" onClick={() => setIsMobileOpen(false)}>
+              <span className="font-heading text-3xl tracking-[0.28em]" style={{ color: 'var(--color-espresso)' }}>
+                NOVEIRA
+              </span>
             </Link>
-            <Link
-              href="/cart"
+            <button
+              type="button"
               onClick={() => setIsMobileOpen(false)}
-              className="py-5 font-heading text-3xl transition-opacity hover:opacity-60"
-              style={{ color: 'var(--color-espresso)', borderBottom: '1px solid var(--color-parchment)' }}
+              className="p-2 transition-opacity hover:opacity-60"
+              aria-label="Close menu"
             >
-              Bag{cartCount > 0 ? ` (${cartCount})` : ''}
-            </Link>
-            <Link
-              href="/admin/login"
-              onClick={() => setIsMobileOpen(false)}
-              className="py-5 font-heading text-3xl transition-opacity hover:opacity-60"
-              style={{ color: 'var(--color-champagne)' }}
-            >
-              Admin Portal
-            </Link>
+              <svg className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor" style={{ color: 'var(--color-espresso)' }}>
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
           </div>
-        </nav>
 
-        {/* Mobile footer */}
-        <div
-          className="px-6 py-6 flex items-center gap-6"
-          style={{ borderTop: '1px solid var(--color-parchment)' }}
-        >
-          {['Instagram', 'Pinterest', 'X'].map((s) => (
-            <a
-              key={s}
-              href="#"
-              className="text-xs uppercase tracking-[0.2em] font-medium transition-opacity hover:opacity-60"
-              style={{ color: 'var(--color-charcoal)' }}
-            >
-              {s}
-            </a>
-          ))}
+          {/* Mobile Nav Links */}
+          <nav className="flex-1 overflow-y-auto px-6 py-8" aria-label="Mobile navigation">
+            <div className="flex flex-col">
+              {NAV.map((item) =>
+                item.items ? (
+                  <div key={item.label}>
+                    <button
+                      type="button"
+                      onClick={() => setMobileExpanded(mobileExpanded === item.label ? null : item.label)}
+                      className="flex w-full items-center justify-between py-5 text-left"
+                      style={{ borderBottom: '1px solid var(--color-parchment)' }}
+                    >
+                      <span
+                        className="font-heading text-3xl"
+                        style={{ color: 'var(--color-espresso)' }}
+                      >
+                        {item.label}
+                      </span>
+                      <svg
+                        className={`h-5 w-5 transition-transform duration-300 ${mobileExpanded === item.label ? 'rotate-180' : ''}`}
+                        fill="none" viewBox="0 0 24 24" stroke="currentColor"
+                        style={{ color: 'var(--color-charcoal)' }}
+                      >
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+                      </svg>
+                    </button>
+                    {mobileExpanded === item.label && (
+                      <div className="py-4 pl-4 flex flex-col gap-2 animate-fade-in">
+                        {item.items.map((sub) => (
+                          <Link
+                            key={sub.href}
+                            href={sub.href}
+                            onClick={() => setIsMobileOpen(false)}
+                            className="py-3 text-sm uppercase tracking-[0.16em] font-semibold transition-colors hover:opacity-60"
+                            style={{ color: 'var(--color-charcoal)' }}
+                          >
+                            {sub.label}
+                          </Link>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <Link
+                    key={item.label}
+                    href={item.href!}
+                    onClick={() => setIsMobileOpen(false)}
+                    className="py-5 font-heading text-3xl transition-opacity hover:opacity-60"
+                    style={{ color: 'var(--color-espresso)', borderBottom: '1px solid var(--color-parchment)' }}
+                  >
+                    {item.label}
+                  </Link>
+                )
+              )}
+              <Link
+                href="/wishlist"
+                onClick={() => setIsMobileOpen(false)}
+                className="py-5 font-heading text-3xl transition-opacity hover:opacity-60"
+                style={{ color: 'var(--color-espresso)', borderBottom: '1px solid var(--color-parchment)' }}
+              >
+                Wishlist{wishlistCount > 0 ? ` (${wishlistCount})` : ''}
+              </Link>
+              <Link
+                href="/cart"
+                onClick={() => setIsMobileOpen(false)}
+                className="py-5 font-heading text-3xl transition-opacity hover:opacity-60"
+                style={{ color: 'var(--color-espresso)', borderBottom: '1px solid var(--color-parchment)' }}
+              >
+                Bag{cartCount > 0 ? ` (${cartCount})` : ''}
+              </Link>
+              <Link
+                href="/admin/login"
+                onClick={() => setIsMobileOpen(false)}
+                className="py-5 font-heading text-3xl transition-opacity hover:opacity-60"
+                style={{ color: 'var(--color-champagne)' }}
+              >
+                Admin Portal
+              </Link>
+            </div>
+          </nav>
+
+          {/* Mobile Footer */}
+          <div
+            className="px-6 py-6 flex items-center gap-6"
+            style={{ borderTop: '1px solid var(--color-parchment)' }}
+          >
+            {['Instagram', 'Pinterest', 'X'].map((s) => (
+              <a
+                key={s}
+                href="#"
+                className="text-xs uppercase tracking-[0.2em] font-semibold transition-opacity hover:opacity-60"
+                style={{ color: 'var(--color-charcoal)' }}
+              >
+                {s}
+              </a>
+            ))}
+          </div>
         </div>
-      </div>
+      )}
     </>
   );
 }
