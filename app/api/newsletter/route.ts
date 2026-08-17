@@ -1,7 +1,9 @@
 import { NextResponse } from 'next/server';
-import { supabase, isSupabaseConfigured } from '@/src/lib/supabase';
+import { getSupabaseServerClient } from '@/src/lib/supabase';
 
 export async function POST(request: Request) {
+  const client = getSupabaseServerClient();
+
   try {
     const body = await request.json();
     const { email } = body;
@@ -10,8 +12,8 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, error: 'Please enter a valid email address' }, { status: 400 });
     }
 
-    if (isSupabaseConfigured && supabase) {
-      const { error } = await supabase.from('newsletter_subscribers').insert({
+    if (client) {
+      const { error } = await client.from('newsletter_subscribers').insert({
         email,
         subscribed_at: new Date().toISOString(),
       });

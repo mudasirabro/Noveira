@@ -1,16 +1,49 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
 // Environment variables provided by Vercel Supabase integration
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || process.env.SUPABASE_URL || '';
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || '';
+const supabaseUrl =
+  process.env.NEXT_PUBLIC_SUPABASE_URL ||
+  process.env.SUPABASE_URL ||
+  '';
+
+const supabaseAnonKey =
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY ||
+  process.env.SUPABASE_ANON_KEY ||
+  '';
+
+const supabaseServiceKey =
+  process.env.SUPABASE_SERVICE_ROLE_KEY ||
+  supabaseAnonKey;
 
 // Utility boolean to check if active Supabase connection credentials exist
-export const isSupabaseConfigured = Boolean(supabaseUrl && supabaseAnonKey);
+export const isSupabaseConfigured = Boolean(supabaseUrl && (supabaseServiceKey || supabaseAnonKey));
 
-// Export lazy or initialized Supabase client
-export const supabase = isSupabaseConfigured
-  ? createClient(supabaseUrl, supabaseAnonKey)
-  : null;
+let clientInstance: SupabaseClient | null = null;
+let serverInstance: SupabaseClient | null = null;
+
+// Public Client (for client-side reads)
+export function getSupabaseClient(): SupabaseClient | null {
+  if (!isSupabaseConfigured) return null;
+  if (!clientInstance) {
+    clientInstance = createClient(supabaseUrl, supabaseAnonKey, {
+      auth: { persistSession: false },
+    });
+  }
+  return clientInstance;
+}
+
+// Secure Server Client (for API Routes — uses Service Role Key if available to bypass RLS safely)
+export function getSupabaseServerClient(): SupabaseClient | null {
+  if (!isSupabaseConfigured) return null;
+  if (!serverInstance) {
+    serverInstance = createClient(supabaseUrl, supabaseServiceKey || supabaseAnonKey, {
+      auth: { persistSession: false },
+    });
+  }
+  return serverInstance;
+}
+
+export const supabase = getSupabaseServerClient() || getSupabaseClient();
 
 /* ────────────────────────────────────────────────────────────────────────── */
 /* TypeScript Interfaces for Supabase Database Tables                         */

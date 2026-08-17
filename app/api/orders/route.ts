@@ -1,20 +1,23 @@
 import { NextResponse } from 'next/server';
-import { supabase, isSupabaseConfigured } from '@/src/lib/supabase';
+import { getSupabaseServerClient, isSupabaseConfigured } from '@/src/lib/supabase';
 import { readOrders, writeOrders, setOrderStatus, StoredOrder, OrderStatus } from '@/src/lib/orders';
 import { updateStock } from '@/src/data/products';
 
 export const dynamic = 'force-dynamic';
 
 export async function GET() {
+  const client = getSupabaseServerClient();
+
   try {
-    if (isSupabaseConfigured && supabase) {
-      const { data: dbOrders, error } = await supabase
+    if (client) {
+      const { data: dbOrders, error } = await client
         .from('orders')
         .select('*, order_items(*)')
         .order('placed_at', { ascending: false });
 
-      if (!error && dbOrders) {
-        // Map Supabase rows to StoredOrder structure
+      if (error) {
+        console.error('Supabase GET Orders Error:', error);
+      } else if (dbOrders && dbOrders.length > 0) {
         const formattedOrders: StoredOrder[] = dbOrders.map((o) => ({
           id: o.id,
           customer: o.customer_name,
@@ -42,8 +45,7 @@ export async function GET() {
       }
     }
 
-    const localOrders = readOrders();
-    return NextResponse.json({ success: true, source: 'local', data: localOrders });
+    return NextResponse.json({ success: true, source: 'local', data: readOrders() });
   } catch (error) {
     console.error('Get Orders API Error:', error);
     return NextResponse.json({ success: true, source: 'local', data: readOrders() });
@@ -51,6 +53,8 @@ export async function GET() {
 }
 
 export async function POST(request: Request) {
+  const client = getSupabaseServerClient();
+
   try {
     const body = await request.json();
     const order: StoredOrder = body.order;
@@ -65,13 +69,15 @@ export async function POST(request: Request) {
 
     // 2. Reduce stock for items in local memory
     for (const item of order.items) {
-      // Find current stock and decrement
       updateStock(item.id, Math.max(0, (item.quantity ?? 1)));
     }
 
+    let supabaseSaved = false;
+    let supabaseErrorDetails: string | null = null;
+
     // 3. Save to Supabase DB if configured
-    if (isSupabaseConfigured && supabase) {
-      const { error: orderErr } = await supabase.from('orders').insert({
+    if (client) {
+      const { error: orderErr } = await client.from('orders').insert({
         id: order.id,
         customer_name: order.customer,
         email: order.email,
@@ -88,8 +94,10 @@ export async function POST(request: Request) {
 
       if (orderErr) {
         console.error('Supabase Order Insert Error:', orderErr);
+        supabaseErrorDetails = orderErr.message;
       } else {
-        // Insert items into 'order_items'
+        supabaseSaved = true;
+
         const itemsToInsert = order.items.map((item) => ({
           order_id: order.id,
           product_id: item.id,
@@ -100,21 +108,29 @@ export async function POST(request: Request) {
           price: item.price,
         }));
 
-        const { error: itemsErr } = await supabase.from('order_items').insert(itemsToInsert);
+        const { error: itemsErr } = await client.from('order_items').insert(itemsToInsert);
         if (itemsErr) {
           console.error('Supabase Order Items Insert Error:', itemsErr);
         }
       }
     }
 
-    return NextResponse.json({ success: true, orderId: order.id });
-  } catch (error) {
+    return NextResponse.json({
+      success: true,
+      orderId: order.id,
+      supabaseSaved,
+      supabaseError: supabaseErrorDetails,
+      configured: Boolean(client),
+    });
+  } catch (error: any) {
     console.error('Create Order API Error:', error);
-    return NextResponse.json({ success: false, error: 'Failed to process order' }, { status: 500 });
+    return NextResponse.json({ success: false, error: error?.message || 'Failed to process order' }, { status: 500 });
   }
 }
 
 export async function PATCH(request: Request) {
+  const client = getSupabaseServerClient();
+
   try {
     const body = await request.json();
     const { id, status } = body;
@@ -123,12 +139,10 @@ export async function PATCH(request: Request) {
       return NextResponse.json({ success: false, error: 'Missing order ID or status' }, { status: 400 });
     }
 
-    // 1. Update local storage state
     setOrderStatus(id, status as OrderStatus);
 
-    // 2. Update Supabase table 'orders'
-    if (isSupabaseConfigured && supabase) {
-      const { error } = await supabase
+    if (client) {
+      const { error } = await client
         .from('orders')
         .update({ status })
         .eq('id', id);
