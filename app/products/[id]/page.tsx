@@ -2,13 +2,12 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react';
 import Link from 'next/link';
-import Image from 'next/image';
 import { useParams } from 'next/navigation';
 import { useCart } from '@/src/context/CartContext';
 import { useRecentlyViewed } from '@/src/context/RecentlyViewedContext';
 import { useWishlist } from '@/src/context/WishlistContext';
 import ProductCard from '@/src/components/ProductCard';
-import { getProductById, products, parsePrice } from '@/src/data/products';
+import { getProductById, products as fallbackProducts, Product, parsePrice } from '@/src/data/products';
 
 export default function ProductDetailsPage() {
   const params = useParams();
@@ -17,8 +16,9 @@ export default function ProductDetailsPage() {
   const { toggleWishlist, isInWishlist, hydrated: wishlistHydrated } = useWishlist();
 
   const id = Number.parseInt(params.id as string, 10);
-  const product = useMemo(() => getProductById(id) ?? null, [id]);
 
+  const [allProducts, setAllProducts] = useState<Product[]>(fallbackProducts);
+  const [loading, setLoading] = useState(true);
   const [selectedSize, setSelectedSize] = useState('');
   const [selectedColor, setSelectedColor] = useState('');
   const [quantity, setQuantity] = useState(1);
@@ -26,6 +26,32 @@ export default function ProductDetailsPage() {
   const [activeTab, setActiveTab] = useState<'details' | 'care' | 'shipping'>('details');
 
   const hasLoggedView = useRef(false);
+
+  // Fetch latest products from Supabase / API route
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch('/api/products')
+      .then((res) => res.json())
+      .then((data) => {
+        if (cancelled) return;
+        if (data?.success && Array.isArray(data.data) && data.data.length > 0) {
+          setAllProducts(data.data);
+        }
+      })
+      .catch((err) => console.error('Product details API error:', err))
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  const product = useMemo(() => {
+    return allProducts.find((p) => Number(p.id) === Number(id)) ?? getProductById(id) ?? null;
+  }, [allProducts, id]);
 
   useEffect(() => {
     if (product && !hasLoggedView.current) {
@@ -44,14 +70,27 @@ export default function ProductDetailsPage() {
 
   const related = useMemo(() => {
     if (!product) return [];
-    const sameGender = products.filter(
-      (p) => p.gender === product.gender && p.id !== product.id
+    const sameGender = allProducts.filter(
+      (p) => p.gender === product.gender && Number(p.id) !== Number(product.id)
     );
     if (sameGender.length >= 4) return sameGender.slice(0, 4);
-    const others = products.filter((p) => p.id !== product.id);
+    const others = allProducts.filter((p) => Number(p.id) !== Number(product.id));
     return [...sameGender, ...others].slice(0, 4);
-  }, [product]);
+  }, [product, allProducts]);
 
+  // Loading Skeleton State
+  if (loading && !product) {
+    return (
+      <main className="flex min-h-screen items-center justify-center" style={{ background: 'var(--color-bg)' }}>
+        <div className="text-center">
+          <div className="inline-block h-8 w-8 border-2 border-t-transparent border-b-transparent rounded-full animate-spin-slow" style={{ borderColor: 'var(--color-champagne)', borderTopColor: 'transparent' }} />
+          <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: 'var(--color-taupe)' }}>Loading Garment Details...</p>
+        </div>
+      </main>
+    );
+  }
+
+  // Not Found State
   if (!product) {
     return (
       <main
@@ -125,7 +164,7 @@ export default function ProductDetailsPage() {
           {/* ── Left: Image ──────────────────────────────────────────── */}
           <div className="md:sticky md:top-24">
             <div
-              className="relative overflow-hidden"
+              className="relative overflow-hidden rounded-sm"
               style={{ aspectRatio: '3/4', background: 'var(--color-bg-warm)' }}
             >
               {/* eslint-disable-next-html-element-suppression */}
@@ -161,294 +200,234 @@ export default function ProductDetailsPage() {
                 )}
               </div>
             </div>
-
-            {/* Zoom hint */}
-            <p className="mt-3 text-center text-xs font-medium uppercase tracking-[0.18em]" style={{ color: 'var(--color-taupe)' }}>
-              Hover image to inspect detail
-            </p>
           </div>
 
-          {/* ── Right: Product Info ───────────────────────────────────── */}
+          {/* ── Right: Details & Purchase Form ────────────────────────── */}
           <div className="flex flex-col">
-            {/* Category / gender label */}
-            <div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] mb-3" style={{ color: 'var(--color-champagne)' }}>
-              <span>{product.gender}</span>
-              <span style={{ color: 'var(--color-parchment)' }}>—</span>
-              <span>{product.category}</span>
+            {/* Category & Rating */}
+            <div className="flex items-center justify-between">
+              <span
+                className="text-xs font-semibold uppercase tracking-[0.24em]"
+                style={{ color: 'var(--color-taupe)' }}
+              >
+                {product.gender} · {product.category}
+              </span>
+              {product.rating > 0 && (
+                <div className="flex items-center gap-1.5 text-xs font-medium" style={{ color: 'var(--color-champagne)' }}>
+                  <span>{'★'.repeat(Math.round(product.rating))}</span>
+                  <span style={{ color: 'var(--color-taupe)' }}>({product.reviews} reviews)</span>
+                </div>
+              )}
             </div>
 
-            {/* Product name */}
+            {/* Title */}
             <h1
-              className="font-heading"
+              className="font-heading mt-3"
               style={{
-                fontSize: 'clamp(2.25rem, 4.5vw, 3.5rem)',
-                color: 'var(--color-espresso)',
+                fontSize: 'clamp(2rem, 4vw, 3rem)',
                 fontWeight: 400,
-                lineHeight: 1.08
+                color: 'var(--color-espresso)',
+                lineHeight: 1.15,
               }}
             >
               {product.name}
             </h1>
 
-            {/* Rating */}
-            <div className="mt-3.5 flex items-center gap-3">
-              <span style={{ color: 'var(--color-champagne)', fontSize: '1rem' }}>
-                {'★'.repeat(Math.round(product.rating))}{'☆'.repeat(5 - Math.round(product.rating))}
-              </span>
-              <span className="text-xs font-medium" style={{ color: 'var(--color-charcoal)' }}>
-                {product.rating.toFixed(1)} · {product.reviews} Customer Reviews
-              </span>
-            </div>
-
             {/* Price */}
-            <div className="mt-6 flex items-baseline gap-3" style={{ borderTop: '1.5px solid var(--color-parchment)', paddingTop: '1.75rem' }}>
-              <span
-                className="font-heading text-3xl"
-                style={{ color: 'var(--color-espresso)', fontWeight: 500 }}
-              >
+            <div className="mt-5 flex items-baseline gap-4">
+              <span className="font-heading text-3xl font-semibold" style={{ color: 'var(--color-espresso)' }}>
                 {product.salePrice ?? product.price}
               </span>
               {product.salePrice && (
-                <span className="text-lg line-through font-normal" style={{ color: 'var(--color-taupe)' }}>
+                <span className="text-lg line-through" style={{ color: 'var(--color-taupe)' }}>
                   {product.price}
                 </span>
               )}
             </div>
 
-            {/* Stock status */}
-            <p className="mt-2 text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: soldOut ? '#B04040' : product.stock <= 5 ? 'var(--color-champagne)' : 'var(--color-taupe)' }}>
-              {soldOut
-                ? 'Out of Stock'
-                : product.stock <= 5
-                ? `Only ${product.stock} left`
-                : 'In Stock — Ships Next Business Day'}
-            </p>
+            <div className="my-8 divider" />
 
-            {/* Description */}
-            <p className="mt-6 text-base leading-relaxed" style={{ color: 'var(--color-charcoal)', fontWeight: 400 }}>
-              {product.description ?? 'Crafted with extreme care in small batches by Noveira Atelier.'}
-            </p>
-
-            {/* Color selection */}
-            {product.colors && product.colors.length > 0 && (
-              <fieldset className="mt-8">
-                <legend className="text-xs uppercase tracking-[0.18em] font-semibold mb-3" style={{ color: 'var(--color-espresso)' }}>
-                  Shade: <span style={{ color: 'var(--color-champagne)', fontWeight: 600 }}>{selectedColor || product.colors[0]}</span>
-                </legend>
-                <div className="flex flex-wrap gap-2.5">
-                  {product.colors.map((color) => (
-                    <button
-                      key={color}
-                      type="button"
-                      onClick={() => setSelectedColor(color)}
-                      disabled={soldOut}
-                      aria-pressed={selectedColor === color || (!selectedColor && color === product.colors![0])}
-                      className="px-5 py-3 text-xs uppercase tracking-[0.14em] font-semibold transition-all duration-200 border"
-                      style={{
-                        borderColor: (selectedColor === color || (!selectedColor && color === product.colors![0]))
-                          ? 'var(--color-espresso)'
-                          : 'var(--color-parchment)',
-                        color: (selectedColor === color || (!selectedColor && color === product.colors![0]))
-                          ? 'var(--color-espresso)'
-                          : 'var(--color-charcoal)',
-                        background: (selectedColor === color || (!selectedColor && color === product.colors![0]))
-                          ? 'var(--color-bg-alt)'
-                          : 'transparent',
-                        opacity: soldOut ? 0.4 : 1,
-                      }}
-                    >
-                      {color}
-                    </button>
-                  ))}
-                </div>
-              </fieldset>
-            )}
-
-            {/* Size selection */}
+            {/* Sizes */}
             {product.sizes && product.sizes.length > 0 && (
-              <fieldset className="mt-7">
+              <div className="mb-8">
                 <div className="flex items-center justify-between mb-3">
-                  <legend className="text-xs uppercase tracking-[0.18em] font-semibold" style={{ color: 'var(--color-espresso)' }}>
-                    Size: <span style={{ color: 'var(--color-champagne)', fontWeight: 600 }}>{selectedSize || 'Select Size'}</span>
-                  </legend>
+                  <span className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: 'var(--color-espresso)' }}>
+                    Select Size
+                  </span>
                   <button
                     type="button"
-                    className="text-xs uppercase tracking-[0.16em] font-medium underline underline-offset-4 transition-opacity hover:opacity-60"
+                    className="text-xs uppercase tracking-[0.14em] underline hover:opacity-75"
                     style={{ color: 'var(--color-taupe)' }}
+                    onClick={() => alert('Sizing Guide: Standard Atelier Tailored Fit. Order your usual international size.')}
                   >
                     Size Guide
                   </button>
                 </div>
                 <div className="flex flex-wrap gap-2.5">
-                  {product.sizes.map((size) => (
-                    <button
-                      key={size}
-                      type="button"
-                      onClick={() => setSelectedSize(size)}
-                      disabled={soldOut}
-                      aria-pressed={selectedSize === size}
-                      className="min-w-[3.5rem] px-5 py-3 text-xs font-semibold uppercase tracking-[0.14em] transition-all duration-200 border"
-                      style={{
-                        borderColor: selectedSize === size ? 'var(--color-espresso)' : 'var(--color-parchment)',
-                        color: selectedSize === size ? 'var(--color-ivory)' : 'var(--color-charcoal)',
-                        background: selectedSize === size ? 'var(--color-espresso)' : 'transparent',
-                        opacity: soldOut ? 0.4 : 1,
-                      }}
-                    >
-                      {size}
-                    </button>
-                  ))}
+                  {product.sizes.map((size) => {
+                    const isSelected = selectedSize === size || (!selectedSize && size === product.sizes?.[0]);
+                    return (
+                      <button
+                        key={size}
+                        type="button"
+                        onClick={() => setSelectedSize(size)}
+                        className="flex h-12 min-w-[52px] items-center justify-center px-4 text-xs font-semibold uppercase tracking-[0.14em] transition-all duration-200"
+                        style={{
+                          border: `1.5px solid ${isSelected ? 'var(--color-espresso)' : 'var(--color-parchment)'}`,
+                          background: isSelected ? 'var(--color-espresso)' : 'transparent',
+                          color: isSelected ? '#F5F1E8' : 'var(--color-espresso)',
+                        }}
+                      >
+                        {size}
+                      </button>
+                    );
+                  })}
                 </div>
-              </fieldset>
+              </div>
             )}
 
-            {/* Quantity + Add to Bag */}
-            <div className="mt-8 flex gap-3">
+            {/* Colors / Shades */}
+            {product.colors && product.colors.length > 0 && (
+              <div className="mb-8">
+                <span className="block text-xs font-semibold uppercase tracking-[0.18em] mb-3" style={{ color: 'var(--color-espresso)' }}>
+                  Shade / Color: <span style={{ color: 'var(--color-taupe)', fontWeight: 400 }}>{selectedColor || product.colors[0]}</span>
+                </span>
+                <div className="flex flex-wrap gap-2.5">
+                  {product.colors.map((color) => {
+                    const isSelected = selectedColor === color || (!selectedColor && color === product.colors?.[0]);
+                    return (
+                      <button
+                        key={color}
+                        type="button"
+                        onClick={() => setSelectedColor(color)}
+                        className="px-4 py-2.5 text-xs font-medium uppercase tracking-[0.14em] transition-all duration-200"
+                        style={{
+                          border: `1.5px solid ${isSelected ? 'var(--color-espresso)' : 'var(--color-parchment)'}`,
+                          background: isSelected ? 'var(--color-bg-alt)' : 'transparent',
+                          color: 'var(--color-espresso)',
+                        }}
+                      >
+                        {color}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            )}
+
+            {/* Quantity Selector & Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4 mb-8">
               {/* Quantity */}
-              <div
-                className="flex items-center border"
-                style={{ borderColor: 'var(--color-parchment)', minHeight: '52px' }}
-              >
+              <div className="flex items-center border" style={{ borderColor: 'var(--color-parchment)', minHeight: '52px' }}>
                 <button
                   type="button"
+                  disabled={quantity <= 1 || soldOut}
                   onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                  disabled={soldOut || quantity <= 1}
-                  className="px-4 py-3 transition-opacity hover:opacity-60 disabled:opacity-30 font-semibold"
-                  style={{ color: 'var(--color-espresso)', fontSize: '1.2rem' }}
+                  className="px-4 py-3 text-lg font-semibold transition-opacity hover:opacity-60 disabled:opacity-30"
+                  style={{ color: 'var(--color-espresso)' }}
                 >
                   −
                 </button>
-                <span className="w-10 text-center text-base font-semibold" style={{ color: 'var(--color-espresso)' }}>
+                <span className="w-10 text-center text-sm font-semibold" style={{ color: 'var(--color-espresso)' }}>
                   {quantity}
                 </span>
                 <button
                   type="button"
+                  disabled={soldOut}
                   onClick={() => setQuantity((q) => Math.min(product.stock, q + 1))}
-                  disabled={soldOut || quantity >= product.stock}
-                  className="px-4 py-3 transition-opacity hover:opacity-60 disabled:opacity-30 font-semibold"
-                  style={{ color: 'var(--color-espresso)', fontSize: '1.2rem' }}
+                  className="px-4 py-3 text-lg font-semibold transition-opacity hover:opacity-60 disabled:opacity-30"
+                  style={{ color: 'var(--color-espresso)' }}
                 >
                   +
                 </button>
               </div>
 
-              {/* Add to bag */}
+              {/* Add to Bag Button */}
               <button
                 type="button"
-                onClick={handleAddToCart}
                 disabled={soldOut}
-                className="flex-1 btn-primary justify-center disabled:opacity-40 disabled:cursor-not-allowed"
-                style={{ minHeight: '52px', fontSize: '0.875rem' }}
+                onClick={handleAddToCart}
+                className="flex-1 btn-primary"
+                style={{
+                  background: added ? 'var(--color-champagne)' : 'var(--color-espresso)',
+                  color: added ? '#1C1917' : '#F5F1E8',
+                }}
               >
                 <span>{soldOut ? 'Sold Out' : added ? '✓ Added to Bag' : 'Add to Bag'}</span>
               </button>
 
-              {/* Wishlist */}
+              {/* Wishlist Button */}
               <button
                 type="button"
                 onClick={() => toggleWishlist(product)}
-                aria-pressed={saved}
-                className="px-5 border transition-all duration-200 flex items-center justify-center"
+                aria-label={saved ? 'Remove from wishlist' : 'Add to wishlist'}
+                className="flex h-[52px] w-[52px] items-center justify-center border transition-colors duration-200 flex-shrink-0"
                 style={{
                   borderColor: saved ? 'var(--color-champagne)' : 'var(--color-parchment)',
-                  color: saved ? 'var(--color-champagne)' : 'var(--color-charcoal)',
-                  background: 'transparent',
-                  minHeight: '52px',
-                }}
-                onMouseEnter={(e) => {
-                  if (!saved) e.currentTarget.style.borderColor = 'var(--color-espresso)';
-                }}
-                onMouseLeave={(e) => {
-                  if (!saved) e.currentTarget.style.borderColor = 'var(--color-parchment)';
+                  color: saved ? 'var(--color-champagne)' : 'var(--color-espresso)',
+                  background: saved ? 'var(--color-bg-alt)' : 'transparent',
                 }}
               >
-                <svg className="h-6 w-6" viewBox="0 0 24 24" fill={saved ? 'currentColor' : 'none'} stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8}
-                    d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                <svg className="h-5 w-5" fill={saved ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                 </svg>
               </button>
             </div>
 
-            {added && (
-              <p className="mt-3 text-sm font-semibold animate-fade-in" style={{ color: 'var(--color-champagne)' }}>
-                ✓ Added to your shopping bag.
-              </p>
-            )}
-
-            {/* Details tabs */}
-            <div className="mt-12" style={{ borderTop: '1.5px solid var(--color-parchment)', paddingTop: '1.75rem' }}>
-              {/* Tab headers */}
-              <div className="flex gap-0" style={{ borderBottom: '1px solid var(--color-parchment)' }}>
-                {[
-                  { id: 'details', label: 'Details' },
-                  { id: 'care', label: 'Material & Care' },
-                  { id: 'shipping', label: 'Shipping & Returns' },
-                ].map((tab) => (
+            {/* Description & Accordion Tabs */}
+            <div className="mt-4 pt-6" style={{ borderTop: '1px solid var(--color-parchment)' }}>
+              <div className="flex border-b" style={{ borderColor: 'var(--color-parchment)' }}>
+                {(['details', 'care', 'shipping'] as const).map((tab) => (
                   <button
-                    key={tab.id}
+                    key={tab}
                     type="button"
-                    onClick={() => setActiveTab(tab.id as typeof activeTab)}
-                    className="px-0 py-3.5 mr-8 text-xs font-semibold uppercase tracking-[0.18em] transition-all duration-200"
+                    onClick={() => setActiveTab(tab)}
+                    className="py-3 px-5 text-xs font-semibold uppercase tracking-[0.18em] transition-all capitalize"
                     style={{
-                      color: activeTab === tab.id ? 'var(--color-espresso)' : 'var(--color-taupe)',
-                      borderBottom: activeTab === tab.id ? '2px solid var(--color-espresso)' : '2px solid transparent',
+                      color: activeTab === tab ? 'var(--color-espresso)' : 'var(--color-taupe)',
+                      borderBottom: activeTab === tab ? '2px solid var(--color-espresso)' : '2px solid transparent',
                       marginBottom: '-1px',
                     }}
                   >
-                    {tab.label}
+                    {tab}
                   </button>
                 ))}
               </div>
 
-              {/* Tab content */}
-              <div className="mt-6 text-base leading-relaxed" style={{ color: 'var(--color-charcoal)' }}>
+              <div className="py-6 text-sm leading-relaxed" style={{ color: 'var(--color-charcoal)' }}>
                 {activeTab === 'details' && (
-                  <div className="space-y-3 animate-fade-in">
-                    <p>{product.description ?? 'Crafted in small batches by our Noveira atelier team.'}</p>
-                    {product.sizes && <p><strong style={{ color: 'var(--color-espresso)' }}>Sizes:</strong> {product.sizes.join(', ')}</p>}
-                    {product.colors && <p><strong style={{ color: 'var(--color-espresso)' }}>Shades:</strong> {product.colors.join(', ')}</p>}
-                  </div>
+                  <p>{product.description || 'A tailored Atelier garment designed with precise proportions and premium materials.'}</p>
                 )}
                 {activeTab === 'care' && (
-                  <div className="space-y-3 animate-fade-in">
-                    <p>Dry clean or hand wash in cold water with mild silk/wool detergent.</p>
-                    <p>Store folded or on a padded hanger. Iron on low heat with a pressing cloth.</p>
-                    <p>Made from premium natural fibres — treat with care for lasting quality.</p>
-                  </div>
+                  <p>Specialist dry clean only. Store on a wide tailored hanger in a cool, dry garment sleeve. Avoid direct contact with perfume or heat.</p>
                 )}
                 {activeTab === 'shipping' && (
-                  <div className="space-y-4 animate-fade-in">
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.18em] font-semibold mb-1" style={{ color: 'var(--color-espresso)' }}>Delivery</p>
-                      <p>Complimentary express shipping across Pakistan on orders above PKR 5,000.</p>
-                    </div>
-                    <div>
-                      <p className="text-xs uppercase tracking-[0.18em] font-semibold mb-1" style={{ color: 'var(--color-espresso)' }}>Returns</p>
-                      <p>14-day hassle-free return window. Items must be unworn with original tags intact.</p>
-                    </div>
-                  </div>
+                  <p>Complimentary express delivery across Pakistan for orders above PKR 5,000. Orders delivered in custom signature Noveira Atelier box packaging within 3–5 business days.</p>
                 )}
               </div>
             </div>
+
           </div>
+
         </div>
 
-        {/* Related Products */}
+        {/* ── Related Garments ────────────────────────────────────────────── */}
         {related.length > 0 && (
-          <section className="mt-32" style={{ borderTop: '1.5px solid var(--color-parchment)', paddingTop: '4.5rem' }}>
-            <div className="mb-12">
-              <p className="text-xs font-semibold uppercase tracking-[0.24em] mb-2" style={{ color: 'var(--color-champagne)' }}>You May Also Like</p>
-              <h2 className="font-heading text-4xl" style={{ fontWeight: 400, color: 'var(--color-espresso)' }}>
-                Related Pieces
+          <section className="mt-28 pt-16" style={{ borderTop: '1.5px solid var(--color-parchment)' }}>
+            <div className="mb-12 text-center">
+              <p className="text-xs font-semibold uppercase tracking-[0.24em] mb-2" style={{ color: 'var(--color-champagne)' }}>Complementary Pieces</p>
+              <h2 className="font-heading text-3xl md:text-4xl" style={{ fontWeight: 400, color: 'var(--color-espresso)' }}>
+                You May Also Admire
               </h2>
             </div>
-            <div className="grid grid-cols-2 gap-x-6 gap-y-12 md:grid-cols-4">
-              {related.map((item) => (
-                <ProductCard key={item.id} product={item} />
+            <div className="grid grid-cols-2 gap-x-6 gap-y-12 lg:grid-cols-4">
+              {related.map((relProduct) => (
+                <ProductCard key={relProduct.id} product={relProduct} />
               ))}
             </div>
           </section>
         )}
+
       </div>
     </main>
   );
