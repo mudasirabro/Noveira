@@ -776,15 +776,32 @@ function ProductFormModal({
           {/* Category & Stock */}
           <div className="grid gap-6 sm:grid-cols-2">
             <div>
-              <label className="block mb-2 text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: S.muted }}>Category</label>
+              <label className="block mb-2 text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: S.muted }}>Category (Type any custom category or choose)</label>
               <input
                 type="text"
                 required
                 value={category}
                 onChange={(e) => setCategory(e.target.value)}
-                placeholder="e.g. Dresses, Outerwear, Knitwear"
+                placeholder="e.g. Jacket, Dresses, Suits, Knitwear"
                 className="input-dark"
+                list="category-suggestions"
               />
+              <datalist id="category-suggestions">
+                <option value="Jacket" />
+                <option value="Dresses" />
+                <option value="Suits" />
+                <option value="Shirts" />
+                <option value="Trousers" />
+                <option value="Blazers" />
+                <option value="Blouses" />
+                <option value="Knitwear" />
+                <option value="Outerwear" />
+                <option value="Evening" />
+                <option value="Skirts" />
+                <option value="Accessories" />
+                <option value="Footwear" />
+                <option value="Playsuits" />
+              </datalist>
             </div>
             <div>
               <label className="block mb-2 text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: S.muted }}>Stock Quantity</label>

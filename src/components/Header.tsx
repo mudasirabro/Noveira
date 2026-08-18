@@ -42,7 +42,7 @@ const NAV: { label: string; href?: string; items?: DropItem[] }[] = [
       { href: '/products?gender=Children&category=Playsuits', label: 'Playsuits' },
     ],
   },
-  { label: 'New Arrivals', href: '/products' },
+  { label: 'New Arrivals', href: '/products?new=true' },
   { label: 'Sale', href: '/products?sale=true' },
 ];
 
@@ -54,10 +54,52 @@ export default function Header() {
   const [isMobileOpen, setIsMobileOpen] = useState(false);
   const [scrolled, setScrolled] = useState(false);
   const [mobileExpanded, setMobileExpanded] = useState<string | null>(null);
+  const [navItems, setNavItems] = useState(NAV);
   const navRef = useRef<HTMLDivElement>(null);
 
   const cartCount = cartHydrated ? getCartCount() : 0;
   const wishlistCount = wishlistHydrated ? getWishlistCount() : 0;
+
+  // Dynamically build dropdown items from Supabase DB products
+  useEffect(() => {
+    let cancelled = false;
+
+    fetch('/api/products')
+      .then((res) => res.json())
+      .then((data) => {
+        if (cancelled) return;
+        if (data?.success && Array.isArray(data.data) && data.data.length > 0) {
+          const prods = data.data;
+
+          const buildGenderItems = (gender: string, fallback: DropItem[]) => {
+            const genderProds = prods.filter((p: any) => p.gender === gender);
+            const cats = [...new Set(genderProds.map((p: any) => p.category))].filter(Boolean) as string[];
+            if (cats.length === 0) return fallback;
+
+            return [
+              { href: `/products?gender=${gender}`, label: `All ${gender}` },
+              ...cats.map((cat) => ({
+                href: `/products?gender=${gender}&category=${encodeURIComponent(cat)}`,
+                label: cat,
+              })),
+            ];
+          };
+
+          setNavItems([
+            { label: 'Women', items: buildGenderItems('Women', NAV[0].items!) },
+            { label: 'Men', items: buildGenderItems('Men', NAV[1].items!) },
+            { label: 'Children', items: buildGenderItems('Children', NAV[2].items!) },
+            { label: 'New Arrivals', href: '/products?new=true' },
+            { label: 'Sale', href: '/products?sale=true' },
+          ]);
+        }
+      })
+      .catch((err) => console.error('Header dynamic nav error:', err));
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   useEffect(() => {
     const onScroll = () => setScrolled(window.scrollY > 30);
@@ -130,7 +172,7 @@ export default function Header() {
 
           {/* Desktop nav — centered with staggered slide-in */}
           <nav className="hidden absolute left-1/2 -translate-x-1/2 items-center gap-10 md:flex" aria-label="Main navigation">
-            {NAV.map((item, idx) =>
+            {navItems.map((item, idx) =>
               item.items ? (
                 <div key={item.label} className="relative animate-slide-down" style={{ animationDelay: `${idx * 0.08}s` }}>
                   <button
@@ -321,7 +363,7 @@ export default function Header() {
           {/* Mobile Nav Links */}
           <nav className="flex-1 overflow-y-auto px-6 py-8" aria-label="Mobile navigation">
             <div className="flex flex-col">
-              {NAV.map((item) =>
+              {navItems.map((item) =>
                 item.items ? (
                   <div key={item.label}>
                     <button
