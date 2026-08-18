@@ -140,7 +140,7 @@ function ProductsContent() {
 
       {/* ── Collection Banner ─────────────────────────────────────────── */}
       <section
-        className="py-16 md:py-24 px-6 text-center"
+        className="pt-20 pb-14 md:pt-28 md:pb-20 px-6 text-center"
         style={{
           background: 'linear-gradient(180deg, var(--color-bg-alt) 0%, var(--color-bg) 100%)',
           borderBottom: '1px solid var(--color-parchment)'

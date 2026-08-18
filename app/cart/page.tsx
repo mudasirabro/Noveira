@@ -30,7 +30,7 @@ export default function CartPage() {
     <main style={{ background: 'var(--color-bg)', minHeight: '100vh' }}>
       {/* Header */}
       <div
-        className="py-16 px-6 text-center"
+        className="pt-20 pb-14 md:pt-28 md:pb-16 px-6 text-center"
         style={{ background: 'var(--color-bg-alt)', borderBottom: '1.5px solid var(--color-parchment)' }}
       >
         <p className="text-xs font-semibold uppercase tracking-[0.24em] mb-3" style={{ color: 'var(--color-champagne)' }}>Your Selection</p>

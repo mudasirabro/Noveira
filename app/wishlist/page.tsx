@@ -19,7 +19,7 @@ export default function WishlistPage() {
     <main style={{ background: 'var(--color-bg)', minHeight: '100vh' }}>
       {/* Header */}
       <div
-        className="py-16 px-6 text-center"
+        className="pt-20 pb-14 md:pt-28 md:pb-16 px-6 text-center"
         style={{ background: 'var(--color-bg-alt)', borderBottom: '1px solid var(--color-parchment)' }}
       >
         <p className="text-label mb-3">Personal Selection</p>

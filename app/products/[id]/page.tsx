@@ -24,6 +24,7 @@ export default function ProductDetailsPage() {
   const [quantity, setQuantity] = useState(1);
   const [added, setAdded] = useState(false);
   const [activeTab, setActiveTab] = useState<'details' | 'care' | 'shipping'>('details');
+  const [showSizeGuide, setShowSizeGuide] = useState(false);
 
   const hasLoggedView = useRef(false);
 
@@ -81,7 +82,7 @@ export default function ProductDetailsPage() {
   // Loading Skeleton State
   if (loading && !product) {
     return (
-      <main className="flex min-h-screen items-center justify-center" style={{ background: 'var(--color-bg)' }}>
+      <main className="flex min-h-screen items-center justify-center pt-24" style={{ background: 'var(--color-bg)' }}>
         <div className="text-center">
           <div className="inline-block h-8 w-8 border-2 border-t-transparent border-b-transparent rounded-full animate-spin-slow" style={{ borderColor: 'var(--color-champagne)', borderTopColor: 'transparent' }} />
           <p className="mt-4 text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: 'var(--color-taupe)' }}>Loading Garment Details...</p>
@@ -94,7 +95,7 @@ export default function ProductDetailsPage() {
   if (!product) {
     return (
       <main
-        className="flex min-h-screen items-center justify-center px-6"
+        className="flex min-h-screen items-center justify-center px-6 pt-28 pb-16"
         style={{ background: 'var(--color-bg)' }}
       >
         <div className="max-w-md text-center">
@@ -137,11 +138,12 @@ export default function ProductDetailsPage() {
   };
 
   return (
-    <main style={{ background: 'var(--color-bg)', minHeight: '100vh' }}>
+    <main style={{ background: 'var(--color-bg)', minHeight: '100vh' }} className="pt-20 md:pt-28">
+
       {/* Breadcrumbs */}
       <nav
         aria-label="Breadcrumb"
-        className="mx-auto max-w-7xl px-6 md:px-10 pt-8 pb-3 flex items-center gap-2.5 text-xs font-medium uppercase tracking-[0.18em]"
+        className="mx-auto max-w-7xl px-6 md:px-12 pt-4 pb-6 flex items-center gap-2.5 text-xs font-medium uppercase tracking-[0.2em]"
         style={{ color: 'var(--color-taupe)' }}
       >
         <Link href="/" className="transition-opacity hover:opacity-60">Home</Link>
@@ -157,21 +159,21 @@ export default function ProductDetailsPage() {
         <span style={{ color: 'var(--color-espresso)', fontWeight: 600 }}>{product.name}</span>
       </nav>
 
-      {/* Product Detail Grid */}
-      <div className="mx-auto max-w-7xl px-6 md:px-10 py-10 pb-28">
-        <div className="grid gap-12 md:grid-cols-2 lg:gap-20 items-start">
+      {/* Product Detail Layout Grid */}
+      <div className="mx-auto max-w-7xl px-6 md:px-12 pb-28">
+        <div className="grid gap-12 lg:grid-cols-12 lg:gap-16 items-start">
 
-          {/* ── Left: Image ──────────────────────────────────────────── */}
-          <div className="md:sticky md:top-24">
+          {/* ── Left Column: Garment Image (7 Cols on desktop) ────────────────── */}
+          <div className="lg:col-span-7 lg:sticky lg:top-28">
             <div
-              className="relative overflow-hidden rounded-sm"
-              style={{ aspectRatio: '3/4', background: 'var(--color-bg-warm)' }}
+              className="relative overflow-hidden rounded-sm group"
+              style={{ aspectRatio: '3/4', background: 'var(--color-bg-warm)', boxShadow: '0 8px 32px rgba(0,0,0,0.04)' }}
             >
               {/* eslint-disable-next-html-element-suppression */}
               <img
                 src={product.image || 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&h=1000&fit=crop&q=80'}
                 alt={product.name}
-                className="h-full w-full object-cover object-center transition-transform duration-700 hover:scale-[1.02]"
+                className="h-full w-full object-cover object-center transition-transform duration-700 group-hover:scale-[1.03]"
                 onError={(e) => {
                   const img = e.currentTarget;
                   img.onerror = null;
@@ -179,22 +181,22 @@ export default function ProductDetailsPage() {
                 }}
               />
 
-              {/* Badges */}
-              <div className="pointer-events-none absolute left-4 top-4 flex flex-col gap-2">
+              {/* Badges Overlay */}
+              <div className="pointer-events-none absolute left-5 top-5 flex flex-col gap-2.5 z-10">
                 {soldOut ? (
                   <span
-                    className="px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.18em]"
-                    style={{ background: 'var(--color-espresso)', color: 'var(--color-ivory)' }}
+                    className="px-4 py-1.5 text-xs font-semibold uppercase tracking-[0.2em]"
+                    style={{ background: 'var(--color-espresso)', color: '#F5F1E8' }}
                   >
                     Sold Out
                   </span>
                 ) : (
                   product.isSale && (
                     <span
-                      className="px-3.5 py-1.5 text-xs font-bold uppercase tracking-[0.18em]"
-                      style={{ background: 'var(--color-champagne)', color: 'var(--color-espresso)' }}
+                      className="px-4 py-1.5 text-xs font-bold uppercase tracking-[0.2em]"
+                      style={{ background: 'var(--color-champagne)', color: '#1C1917' }}
                     >
-                      Sale — Save {discount}%
+                      Archive Sale — Save {discount}%
                     </span>
                   )
                 )}
@@ -202,68 +204,71 @@ export default function ProductDetailsPage() {
             </div>
           </div>
 
-          {/* ── Right: Details & Purchase Form ────────────────────────── */}
-          <div className="flex flex-col">
-            {/* Category & Rating */}
-            <div className="flex items-center justify-between">
+          {/* ── Right Column: Purchase Form & Information (5 Cols on desktop) ──── */}
+          <div className="lg:col-span-5 flex flex-col pt-2 md:pt-0">
+
+            {/* Category & Review Rating Header */}
+            <div className="flex items-center justify-between pb-2">
               <span
-                className="text-xs font-semibold uppercase tracking-[0.24em]"
-                style={{ color: 'var(--color-taupe)' }}
+                className="text-xs font-semibold uppercase tracking-[0.28em]"
+                style={{ color: 'var(--color-champagne)' }}
               >
                 {product.gender} · {product.category}
               </span>
               {product.rating > 0 && (
                 <div className="flex items-center gap-1.5 text-xs font-medium" style={{ color: 'var(--color-champagne)' }}>
                   <span>{'★'.repeat(Math.round(product.rating))}</span>
-                  <span style={{ color: 'var(--color-taupe)' }}>({product.reviews} reviews)</span>
+                  <span style={{ color: 'var(--color-taupe)', fontSize: '0.75rem' }}>({product.reviews || 5} reviews)</span>
                 </div>
               )}
             </div>
 
             {/* Title */}
             <h1
-              className="font-heading mt-3"
+              className="font-heading mt-2 mb-4"
               style={{
-                fontSize: 'clamp(2rem, 4vw, 3rem)',
+                fontSize: 'clamp(2.25rem, 3.5vw, 3.25rem)',
                 fontWeight: 400,
                 color: 'var(--color-espresso)',
                 lineHeight: 1.15,
+                letterSpacing: '-0.01em',
               }}
             >
               {product.name}
             </h1>
 
-            {/* Price */}
-            <div className="mt-5 flex items-baseline gap-4">
+            {/* Price Display */}
+            <div className="flex items-baseline gap-4 mb-6">
               <span className="font-heading text-3xl font-semibold" style={{ color: 'var(--color-espresso)' }}>
                 {product.salePrice ?? product.price}
               </span>
               {product.salePrice && (
-                <span className="text-lg line-through" style={{ color: 'var(--color-taupe)' }}>
+                <span className="text-base line-through font-normal" style={{ color: 'var(--color-taupe)' }}>
                   {product.price}
                 </span>
               )}
             </div>
 
-            <div className="my-8 divider" />
+            <div className="mb-8 divider" />
 
-            {/* Sizes */}
+            {/* Sizes Selection */}
             {product.sizes && product.sizes.length > 0 && (
               <div className="mb-8">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-xs font-semibold uppercase tracking-[0.18em]" style={{ color: 'var(--color-espresso)' }}>
+                <div className="flex items-center justify-between mb-3.5">
+                  <span className="text-xs font-semibold uppercase tracking-[0.2em]" style={{ color: 'var(--color-espresso)' }}>
                     Select Size
                   </span>
                   <button
                     type="button"
-                    className="text-xs uppercase tracking-[0.14em] underline hover:opacity-75"
+                    className="text-xs font-medium uppercase tracking-[0.16em] underline hover:opacity-75"
                     style={{ color: 'var(--color-taupe)' }}
-                    onClick={() => alert('Sizing Guide: Standard Atelier Tailored Fit. Order your usual international size.')}
+                    onClick={() => setShowSizeGuide(true)}
                   >
                     Size Guide
                   </button>
                 </div>
-                <div className="flex flex-wrap gap-2.5">
+
+                <div className="flex flex-wrap gap-3">
                   {product.sizes.map((size) => {
                     const isSelected = selectedSize === size || (!selectedSize && size === product.sizes?.[0]);
                     return (
@@ -271,11 +276,12 @@ export default function ProductDetailsPage() {
                         key={size}
                         type="button"
                         onClick={() => setSelectedSize(size)}
-                        className="flex h-12 min-w-[52px] items-center justify-center px-4 text-xs font-semibold uppercase tracking-[0.14em] transition-all duration-200"
+                        className="flex h-13 min-w-[56px] items-center justify-center px-4 text-xs font-semibold uppercase tracking-[0.16em] transition-all duration-200"
                         style={{
                           border: `1.5px solid ${isSelected ? 'var(--color-espresso)' : 'var(--color-parchment)'}`,
                           background: isSelected ? 'var(--color-espresso)' : 'transparent',
                           color: isSelected ? '#F5F1E8' : 'var(--color-espresso)',
+                          boxShadow: isSelected ? '0 4px 12px rgba(0,0,0,0.08)' : 'none',
                         }}
                       >
                         {size}
@@ -286,13 +292,13 @@ export default function ProductDetailsPage() {
               </div>
             )}
 
-            {/* Colors / Shades */}
+            {/* Colors / Shades Selection */}
             {product.colors && product.colors.length > 0 && (
               <div className="mb-8">
-                <span className="block text-xs font-semibold uppercase tracking-[0.18em] mb-3" style={{ color: 'var(--color-espresso)' }}>
-                  Shade / Color: <span style={{ color: 'var(--color-taupe)', fontWeight: 400 }}>{selectedColor || product.colors[0]}</span>
+                <span className="block text-xs font-semibold uppercase tracking-[0.2em] mb-3.5" style={{ color: 'var(--color-espresso)' }}>
+                  Shade / Color: <span style={{ color: 'var(--color-taupe)', fontWeight: 500 }}>{selectedColor || product.colors[0]}</span>
                 </span>
-                <div className="flex flex-wrap gap-2.5">
+                <div className="flex flex-wrap gap-3">
                   {product.colors.map((color) => {
                     const isSelected = selectedColor === color || (!selectedColor && color === product.colors?.[0]);
                     return (
@@ -300,7 +306,7 @@ export default function ProductDetailsPage() {
                         key={color}
                         type="button"
                         onClick={() => setSelectedColor(color)}
-                        className="px-4 py-2.5 text-xs font-medium uppercase tracking-[0.14em] transition-all duration-200"
+                        className="px-5 py-3 text-xs font-semibold uppercase tracking-[0.16em] transition-all duration-200"
                         style={{
                           border: `1.5px solid ${isSelected ? 'var(--color-espresso)' : 'var(--color-parchment)'}`,
                           background: isSelected ? 'var(--color-bg-alt)' : 'transparent',
@@ -315,28 +321,33 @@ export default function ProductDetailsPage() {
               </div>
             )}
 
-            {/* Quantity Selector & Action Buttons */}
-            <div className="flex flex-col sm:flex-row gap-4 mb-8">
-              {/* Quantity */}
-              <div className="flex items-center border" style={{ borderColor: 'var(--color-parchment)', minHeight: '52px' }}>
+            {/* Action Row: Quantity + Add to Bag + Wishlist */}
+            <div className="flex flex-col sm:flex-row items-stretch gap-4 mb-10">
+              {/* Quantity Stepper */}
+              <div
+                className="flex items-center justify-between border rounded-sm px-2 flex-shrink-0"
+                style={{ borderColor: 'var(--color-parchment)', minWidth: '130px', height: '56px' }}
+              >
                 <button
                   type="button"
                   disabled={quantity <= 1 || soldOut}
                   onClick={() => setQuantity((q) => Math.max(1, q - 1))}
-                  className="px-4 py-3 text-lg font-semibold transition-opacity hover:opacity-60 disabled:opacity-30"
+                  className="w-10 h-full flex items-center justify-center text-xl font-medium transition-opacity hover:opacity-60 disabled:opacity-25"
                   style={{ color: 'var(--color-espresso)' }}
+                  aria-label="Decrease quantity"
                 >
                   −
                 </button>
-                <span className="w-10 text-center text-sm font-semibold" style={{ color: 'var(--color-espresso)' }}>
+                <span className="w-8 text-center text-sm font-bold" style={{ color: 'var(--color-espresso)' }}>
                   {quantity}
                 </span>
                 <button
                   type="button"
                   disabled={soldOut}
                   onClick={() => setQuantity((q) => Math.min(product.stock, q + 1))}
-                  className="px-4 py-3 text-lg font-semibold transition-opacity hover:opacity-60 disabled:opacity-30"
+                  className="w-10 h-full flex items-center justify-center text-xl font-medium transition-opacity hover:opacity-60 disabled:opacity-25"
                   style={{ color: 'var(--color-espresso)' }}
+                  aria-label="Increase quantity"
                 >
                   +
                 </button>
@@ -349,61 +360,99 @@ export default function ProductDetailsPage() {
                 onClick={handleAddToCart}
                 className="flex-1 btn-primary"
                 style={{
+                  height: '56px',
                   background: added ? 'var(--color-champagne)' : 'var(--color-espresso)',
                   color: added ? '#1C1917' : '#F5F1E8',
+                  fontSize: '0.8125rem',
+                  letterSpacing: '0.2em',
                 }}
               >
                 <span>{soldOut ? 'Sold Out' : added ? '✓ Added to Bag' : 'Add to Bag'}</span>
               </button>
 
-              {/* Wishlist Button */}
+              {/* Wishlist Heart Button */}
               <button
                 type="button"
                 onClick={() => toggleWishlist(product)}
                 aria-label={saved ? 'Remove from wishlist' : 'Add to wishlist'}
-                className="flex h-[52px] w-[52px] items-center justify-center border transition-colors duration-200 flex-shrink-0"
+                className="flex h-[56px] w-[56px] items-center justify-center border rounded-sm transition-all duration-200 flex-shrink-0"
                 style={{
                   borderColor: saved ? 'var(--color-champagne)' : 'var(--color-parchment)',
                   color: saved ? 'var(--color-champagne)' : 'var(--color-espresso)',
                   background: saved ? 'var(--color-bg-alt)' : 'transparent',
                 }}
               >
-                <svg className="h-5 w-5" fill={saved ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor">
+                <svg className="h-6 w-6" fill={saved ? 'currentColor' : 'none'} viewBox="0 0 24 24" stroke="currentColor">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.8} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
                 </svg>
               </button>
             </div>
 
-            {/* Description & Accordion Tabs */}
-            <div className="mt-4 pt-6" style={{ borderTop: '1px solid var(--color-parchment)' }}>
-              <div className="flex border-b" style={{ borderColor: 'var(--color-parchment)' }}>
-                {(['details', 'care', 'shipping'] as const).map((tab) => (
-                  <button
-                    key={tab}
-                    type="button"
-                    onClick={() => setActiveTab(tab)}
-                    className="py-3 px-5 text-xs font-semibold uppercase tracking-[0.18em] transition-all capitalize"
-                    style={{
-                      color: activeTab === tab ? 'var(--color-espresso)' : 'var(--color-taupe)',
-                      borderBottom: activeTab === tab ? '2px solid var(--color-espresso)' : '2px solid transparent',
-                      marginBottom: '-1px',
-                    }}
-                  >
-                    {tab}
-                  </button>
-                ))}
+            {/* Product Specifications & Care Tabs */}
+            <div className="pt-8" style={{ borderTop: '1px solid var(--color-parchment)' }}>
+              {/* Tab Buttons Bar */}
+              <div className="flex items-center gap-8 border-b mb-6" style={{ borderColor: 'var(--color-parchment)' }}>
+                {[
+                  { id: 'details', label: 'Details' },
+                  { id: 'care', label: 'Care Guide' },
+                  { id: 'shipping', label: 'Delivery' },
+                ].map((tab) => {
+                  const active = activeTab === tab.id;
+                  return (
+                    <button
+                      key={tab.id}
+                      type="button"
+                      onClick={() => setActiveTab(tab.id as any)}
+                      className="pb-3 text-xs font-semibold uppercase tracking-[0.2em] transition-all relative"
+                      style={{
+                        color: active ? 'var(--color-espresso)' : 'var(--color-taupe)',
+                      }}
+                    >
+                      {tab.label}
+                      {active && (
+                        <div
+                          className="absolute bottom-0 left-0 right-0 h-0.5 animate-slide-right"
+                          style={{ background: 'var(--color-champagne)' }}
+                        />
+                      )}
+                    </button>
+                  );
+                })}
               </div>
 
-              <div className="py-6 text-sm leading-relaxed" style={{ color: 'var(--color-charcoal)' }}>
+              {/* Tab Content Box */}
+              <div className="min-h-[100px] text-sm leading-relaxed" style={{ color: 'var(--color-charcoal)' }}>
                 {activeTab === 'details' && (
-                  <p>{product.description || 'A tailored Atelier garment designed with precise proportions and premium materials.'}</p>
+                  <p className="animate-fade-in">
+                    {product.description || 'A tailored Atelier garment designed with precise proportions, soft hand-feel, and premium finished seams.'}
+                  </p>
                 )}
                 {activeTab === 'care' && (
-                  <p>Specialist dry clean only. Store on a wide tailored hanger in a cool, dry garment sleeve. Avoid direct contact with perfume or heat.</p>
+                  <p className="animate-fade-in">
+                    Specialist dry clean only. Store on a wide tailored hanger in a cool, dry garment sleeve. Avoid direct heat or direct perfume spray.
+                  </p>
                 )}
                 {activeTab === 'shipping' && (
-                  <p>Complimentary express delivery across Pakistan for orders above PKR 5,000. Orders delivered in custom signature Noveira Atelier box packaging within 3–5 business days.</p>
+                  <p className="animate-fade-in">
+                    Complimentary express delivery across Pakistan for orders above PKR 5,000. All orders arrive in signature Noveira Atelier box packaging within 3–5 business days.
+                  </p>
                 )}
+              </div>
+            </div>
+
+            {/* Atelier Value Guarantees */}
+            <div className="mt-8 pt-6 grid grid-cols-3 gap-4 text-center border-t" style={{ borderColor: 'var(--color-parchment)' }}>
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: 'var(--color-champagne)' }}>📦 Delivery</p>
+                <p className="text-[11px] mt-1" style={{ color: 'var(--color-taupe)' }}>Complimentary over PKR 5,000</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: 'var(--color-champagne)' }}>✨ Authenticity</p>
+                <p className="text-[11px] mt-1" style={{ color: 'var(--color-taupe)' }}>100% Atelier Guaranteed</p>
+              </div>
+              <div>
+                <p className="text-[10px] font-semibold uppercase tracking-[0.18em]" style={{ color: 'var(--color-champagne)' }}>🔄 Exchanges</p>
+                <p className="text-[11px] mt-1" style={{ color: 'var(--color-taupe)' }}>Easy 14-Day Return</p>
               </div>
             </div>
 
@@ -429,6 +478,58 @@ export default function ProductDetailsPage() {
         )}
 
       </div>
+
+      {/* Size Guide Modal */}
+      {showSizeGuide && (
+        <div
+          role="dialog"
+          aria-modal="true"
+          className="fixed inset-0 z-[100] flex items-center justify-center p-6 animate-fade-in"
+          style={{ background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(6px)' }}
+        >
+          <div
+            className="w-full max-w-lg p-8 animate-scale-in rounded-sm"
+            style={{ background: 'var(--color-bg)', border: '1.5px solid var(--color-parchment)' }}
+          >
+            <div className="flex items-center justify-between pb-4 mb-6 border-b" style={{ borderColor: 'var(--color-parchment)' }}>
+              <h3 className="font-heading text-2xl" style={{ color: 'var(--color-espresso)' }}>Atelier Sizing Guide</h3>
+              <button
+                type="button"
+                onClick={() => setShowSizeGuide(false)}
+                className="text-lg font-bold p-2 transition-opacity hover:opacity-60"
+              >
+                ✕
+              </button>
+            </div>
+            <p className="text-sm leading-relaxed mb-6" style={{ color: 'var(--color-charcoal)' }}>
+              Noveira garments follow tailored international sizing standards. For a standard tailored fit, select your true size.
+            </p>
+            <table className="w-full text-xs text-left border-collapse mb-6">
+              <thead>
+                <tr className="border-b uppercase tracking-wider" style={{ borderColor: 'var(--color-parchment)', color: 'var(--color-taupe)' }}>
+                  <th className="py-2.5">Size</th>
+                  <th className="py-2.5">Bust/Chest</th>
+                  <th className="py-2.5">Waist</th>
+                  <th className="py-2.5">Hips</th>
+                </tr>
+              </thead>
+              <tbody style={{ color: 'var(--color-espresso)' }}>
+                <tr className="border-b" style={{ borderColor: 'var(--color-parchment)' }}><td className="py-2 font-semibold">S / 4Y</td><td>34" / 22"</td><td>26" / 20"</td><td>36" / 23"</td></tr>
+                <tr className="border-b" style={{ borderColor: 'var(--color-parchment)' }}><td className="py-2 font-semibold">M / 6Y</td><td>36" / 24"</td><td>28" / 21"</td><td>38" / 25"</td></tr>
+                <tr className="border-b" style={{ borderColor: 'var(--color-parchment)' }}><td className="py-2 font-semibold">L / 8Y</td><td>38" / 26"</td><td>30" / 22.5"</td><td>40" / 27"</td></tr>
+                <tr><td className="py-2 font-semibold">XL / 10Y</td><td>40" / 28"</td><td>32" / 24"</td><td>42" / 29"</td></tr>
+              </tbody>
+            </table>
+            <button
+              type="button"
+              onClick={() => setShowSizeGuide(false)}
+              className="w-full btn-primary"
+            >
+              <span>Close Guide</span>
+            </button>
+          </div>
+        </div>
+      )}
     </main>
   );
 }

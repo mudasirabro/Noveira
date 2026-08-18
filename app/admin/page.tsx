@@ -223,6 +223,12 @@ function AdminDashboard() {
   const lowStock     = productList.filter((p) => p.stock > 0 && p.stock <= 5).length;
   const soldOut      = productList.filter((p) => p.stock === 0).length;
 
+  const existingCategories = useMemo(() => {
+    const set = new Set(productList.map((p) => p.category).filter(Boolean));
+    ['Dresses', 'Knitwear', 'Trousers', 'Suits', 'Shirts', 'Blazers', 'Blouses', 'Outerwear', 'Evening', 'Skirts', 'Accessories', 'Footwear', 'Playsuits', 'Jacket'].forEach((c) => set.add(c));
+    return Array.from(set).sort();
+  }, [productList]);
+
   const stats = [
     { label: 'Total Orders',    value: String(orders.length),      accent: false },
     { label: 'Pending',         value: String(pendingCount),       accent: pendingCount > 0 },
@@ -366,6 +372,7 @@ function AdminDashboard() {
       {(isAddModalOpen || editingProduct) && (
         <ProductFormModal
           product={editingProduct}
+          existingCategories={existingCategories}
           onClose={() => { setIsAddModalOpen(false); setEditingProduct(null); }}
           onSave={handleSaveProduct}
         />
@@ -653,18 +660,27 @@ function StockRow({
 /* ─── Add / Edit Product Form Modal ────────────────────────────────── */
 function ProductFormModal({
   product,
+  existingCategories = [],
   onClose,
   onSave,
 }: {
   product: Product | null;
+  existingCategories?: string[];
   onClose: () => void;
   onSave: (formData: any, isEdit: boolean) => void;
 }) {
   const isEdit = Boolean(product);
+  const initialCategory = product?.category || 'Dresses';
 
   const [name, setName] = useState(product?.name || '');
   const [gender, setGender] = useState<string>(product?.gender || 'Women');
-  const [category, setCategory] = useState(product?.category || 'Dresses');
+  const [category, setCategory] = useState(initialCategory);
+  const [isCustomCategory, setIsCustomCategory] = useState(
+    Boolean(initialCategory && !existingCategories.includes(initialCategory))
+  );
+  const [customCategory, setCustomCategory] = useState(
+    initialCategory && !existingCategories.includes(initialCategory) ? initialCategory : ''
+  );
   const [price, setPrice] = useState(product?.price || 'Rs.15,000.00 PKR');
   const [salePrice, setSalePrice] = useState(product?.salePrice || '');
   const [stock, setStock] = useState<number>(product?.stock ?? 10);
@@ -677,7 +693,8 @@ function ProductFormModal({
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name || !price) return;
+    const finalCategory = isCustomCategory ? customCategory.trim() : category.trim();
+    if (!name || !price || !finalCategory) return;
     setSaving(true);
 
     const colorsArr = colorsText.split(',').map((c) => c.trim()).filter(Boolean);
@@ -687,7 +704,7 @@ function ProductFormModal({
         id: product?.id,
         name,
         gender,
-        category,
+        category: finalCategory,
         price,
         salePrice: salePrice || undefined,
         stock: Number(stock),
@@ -776,32 +793,55 @@ function ProductFormModal({
           {/* Category & Stock */}
           <div className="grid gap-6 sm:grid-cols-2">
             <div>
-              <label className="block mb-2 text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: S.muted }}>Category (Type any custom category or choose)</label>
-              <input
-                type="text"
-                required
-                value={category}
-                onChange={(e) => setCategory(e.target.value)}
-                placeholder="e.g. Jacket, Dresses, Suits, Knitwear"
-                className="input-dark"
-                list="category-suggestions"
-              />
-              <datalist id="category-suggestions">
-                <option value="Jacket" />
-                <option value="Dresses" />
-                <option value="Suits" />
-                <option value="Shirts" />
-                <option value="Trousers" />
-                <option value="Blazers" />
-                <option value="Blouses" />
-                <option value="Knitwear" />
-                <option value="Outerwear" />
-                <option value="Evening" />
-                <option value="Skirts" />
-                <option value="Accessories" />
-                <option value="Footwear" />
-                <option value="Playsuits" />
-              </datalist>
+              <div className="flex items-center justify-between mb-2">
+                <label className="text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: S.muted }}>Category</label>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setIsCustomCategory((v) => !v);
+                    if (!isCustomCategory) setCustomCategory('');
+                  }}
+                  className="text-xs font-semibold uppercase tracking-[0.08em] underline hover:opacity-75"
+                  style={{ color: S.champ }}
+                >
+                  {isCustomCategory ? 'Select Existing Category' : '＋ Create New Category'}
+                </button>
+              </div>
+
+              {isCustomCategory ? (
+                <input
+                  type="text"
+                  required
+                  value={customCategory}
+                  onChange={(e) => {
+                    setCustomCategory(e.target.value);
+                    setCategory(e.target.value);
+                  }}
+                  placeholder="Type new category (e.g. Jacket, Coats)"
+                  className="input-dark"
+                />
+              ) : (
+                <select
+                  value={category}
+                  onChange={(e) => {
+                    if (e.target.value === '__NEW__') {
+                      setIsCustomCategory(true);
+                      setCustomCategory('');
+                      setCategory('');
+                    } else {
+                      setCategory(e.target.value);
+                    }
+                  }}
+                  className="input-dark cursor-pointer"
+                >
+                  {existingCategories.map((cat) => (
+                    <option key={cat} value={cat}>
+                      {cat}
+                    </option>
+                  ))}
+                  <option value="__NEW__">＋ Create New Category...</option>
+                </select>
+              )}
             </div>
             <div>
               <label className="block mb-2 text-xs font-semibold uppercase tracking-[0.12em]" style={{ color: S.muted }}>Stock Quantity</label>
