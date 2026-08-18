@@ -128,16 +128,15 @@ export default function ProductDetailsPage() {
               className="relative overflow-hidden"
               style={{ aspectRatio: '3/4', background: 'var(--color-bg-warm)' }}
             >
-              <Image
-                src={product.image}
+              {/* eslint-disable-next-html-element-suppression */}
+              <img
+                src={product.image || 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&h=1000&fit=crop&q=80'}
                 alt={product.name}
-                fill
-                priority
-                sizes="(min-width: 768px) 50vw, 100vw"
-                className="object-cover object-center transition-transform duration-700 hover:scale-[1.02]"
+                className="h-full w-full object-cover object-center transition-transform duration-700 hover:scale-[1.02]"
                 onError={(e) => {
-                  const img = e.target as HTMLImageElement;
-                  img.src = `https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&h=1000&fit=crop&q=80`;
+                  const img = e.currentTarget;
+                  img.onerror = null;
+                  img.src = 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=800&h=1000&fit=crop&q=80';
                 }}
               />
 

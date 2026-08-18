@@ -75,14 +75,15 @@ export default function CartPage() {
                     className="relative flex-shrink-0 overflow-hidden"
                     style={{ width: '6.5rem', height: '8.5rem', background: 'var(--color-bg-warm)' }}
                   >
-                    <Image
-                      src={item.image}
+                    {/* eslint-disable-next-html-element-suppression */}
+                    <img
+                      src={item.image || 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=200&h=260&fit=crop'}
                       alt={item.name}
-                      fill
-                      sizes="104px"
-                      className="object-cover transition-transform duration-500 hover:scale-[1.04]"
+                      className="h-full w-full object-cover transition-transform duration-500 hover:scale-[1.04]"
                       onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=200&h=260&fit=crop';
+                        const img = e.currentTarget;
+                        img.onerror = null;
+                        img.src = 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=200&h=260&fit=crop';
                       }}
                     />
                   </Link>

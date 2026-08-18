@@ -48,16 +48,15 @@ export default function ProductCard({ product, badge, priority = false }: Produc
         style={{ aspectRatio: '3/4', background: 'var(--color-bg-warm)' }}
       >
         <Link href={`/products/${product.id}`} className="block h-full w-full" aria-label={product.name}>
-          <Image
-            src={product.image}
+          {/* eslint-disable-next-html-element-suppression */}
+          <img
+            src={product.image || 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=600&h=800&fit=crop&q=80'}
             alt={product.name}
-            fill
-            sizes="(min-width: 1024px) 25vw, (min-width: 768px) 33vw, 50vw"
-            priority={priority}
-            className="product-card-img object-cover object-center"
+            className="product-card-img h-full w-full object-cover object-center"
             onError={(e) => {
-              const img = e.target as HTMLImageElement;
-              img.src = `https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=600&h=800&fit=crop&q=80`;
+              const img = e.currentTarget;
+              img.onerror = null;
+              img.src = 'https://images.unsplash.com/photo-1490481651871-ab68de25d43d?w=600&h=800&fit=crop&q=80';
             }}
           />
 
